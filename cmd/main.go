@@ -1,13 +1,14 @@
 package main
 
 import (
-	"context"
 	"log"
 	"os"
 
 	"github.com/Luzin7/pcideal-be/infra/database"
 	"github.com/Luzin7/pcideal-be/infra/repositories"
+	"github.com/Luzin7/pcideal-be/internal/http/controllers"
 	"github.com/Luzin7/pcideal-be/internal/http/routes"
+	"github.com/Luzin7/pcideal-be/internal/http/services"
 	"github.com/joho/godotenv"
 )
 
@@ -27,8 +28,10 @@ func main() {
 	}
 
 	partRepository := repositories.NewPartRepository(db)
+	partService := services.NewPartService(partRepository)
+	partController := controllers.NewPartController(partService)
 
-	router := routes.SetupRouter()
+	router := routes.SetupRouter(partController)
 
 	if err := router.Run(":8080"); err != nil {
 		log.Fatal("Erro ao subir o servidor:", err)
