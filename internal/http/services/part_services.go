@@ -24,3 +24,22 @@ func (partService *PartService) GetAllParts() ([]*models.Part, error) {
 
 	return parts, nil
 }
+
+func (partService *PartService) GetPartByID(id string) (*models.Part, error) {
+	part, err := partService.PartRepository.GetPartByID(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return part, nil
+}
+func (partService *PartService) GetPartByName(name string) (*models.Part, error) {
+	part, err := partService.PartRepository.GetPartByName(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return part, nil
+}
