@@ -5,10 +5,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter() *gin.Engine {
+func SetupRouter(partController *controllers.PartController) *gin.Engine {
 	router := gin.Default()
 
-	router.GET("/ping", controllers.Ping)
+	api := router.Group("/api")
+
+	parts := api.Group("/parts")
+	{
+		parts.GET("/", partController.GetAllParts)
+		parts.GET("/:id", partController.GetPartByID)
+	}
+
+	// auth := api.Group("/auth")
+	// {
+	// 	auth.POST("/login", authController.Login)
+	// 	auth.POST("/register", authController.Register)
+	// }
 
 	return router
 }
