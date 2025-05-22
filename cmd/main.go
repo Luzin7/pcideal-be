@@ -1,0 +1,36 @@
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+
+	"github.com/Luzin7/pcideal-be/infra/database"
+	"github.com/Luzin7/pcideal-be/infra/repositories"
+	"github.com/Luzin7/pcideal-be/internal/http/routes"
+	"github.com/joho/godotenv"
+)
+
+func main() {
+	err := godotenv.Load("../../.env")
+
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	connectionString := os.Getenv("DATABASE_URL")
+	databaseName := os.Getenv("PCIDEAL_DB_NAME")
+	db, err := database.MongoConnection(connectionString, databaseName)
+
+	if err != nil {
+		log.Fatal("Erro ao conectar ao banco de dados")
+	}
+
+	partRepository := repositories.NewPartRepository(db)
+
+	router := routes.SetupRouter()
+
+	if err := router.Run(":8080"); err != nil {
+		log.Fatal("Erro ao subir o servidor:", err)
+	}
+}
