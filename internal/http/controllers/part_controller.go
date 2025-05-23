@@ -40,9 +40,9 @@ func (pc *PartController) GetPartByID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, part)
 }
-func (pc *PartController) GetPartByName(c *gin.Context) {
-	name := c.Param("name")
-	part, err := pc.PartService.GetPartByName(name)
+func (pc *PartController) GetPartByModel(c *gin.Context) {
+	model := c.Param("model")
+	part, err := pc.PartService.GetPartByModel(model)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao buscar peça"})
 		return
