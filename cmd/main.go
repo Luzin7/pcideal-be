@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/Luzin7/pcideal-be/infra/database"
+	"github.com/Luzin7/pcideal-be/infra/external"
 	"github.com/Luzin7/pcideal-be/infra/repositories"
 	"github.com/Luzin7/pcideal-be/internal/http/controllers"
 	"github.com/Luzin7/pcideal-be/internal/http/routes"
@@ -28,7 +29,8 @@ func main() {
 	}
 
 	partRepository := repositories.NewPartRepository(db)
-	partService := services.NewPartService(partRepository)
+	scraperClient := external.NewScraperHTTPClient(os.Getenv("SCRAPER_API_URL"))
+	partService := services.NewPartService(partRepository, scraperClient)
 	partController := controllers.NewPartController(partService)
 
 	router := routes.SetupRouter(partController)
