@@ -20,6 +20,41 @@ func NewPartRepository(client *mongo.Database) *PartRepository {
 	}
 }
 
+func (partRepository *PartRepository) CreatePart(part *models.Part) error {
+	ctx := context.TODO()
+
+	_, err := partRepository.collection.InsertOne(ctx, part)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (partRepository *PartRepository) UpdatePart(partId string, part *models.Part) error {
+	ctx := context.TODO()
+
+	_, err := partRepository.collection.UpdateOne(ctx, bson.M{"_id": partId}, bson.M{
+		"$set": bson.M{
+			"type":        part.Type,
+			"brand":       part.Brand,
+			"model":       part.Model,
+			"specs":       part.Specs,
+			"price_cents": part.PriceCents,
+			"url":         part.URL,
+			"store":       part.Store,
+			"updated_at":  part.UpdatedAt,
+		},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (partRepository *PartRepository) GetAllParts() ([]*models.Part, error) {
 	ctx := context.TODO()
 
@@ -67,12 +102,12 @@ func (partRepository *PartRepository) GetPartByID(id string) (*models.Part, erro
 	return &part, nil
 }
 
-func (partRepository *PartRepository) GetPartByName(name string) (*models.Part, error) {
+func (partRepository *PartRepository) GetPartByModel(model string) (*models.Part, error) {
 	ctx := context.TODO()
 
 	var part models.Part
 
-	err := partRepository.collection.FindOne(ctx, bson.M{"name": name}).Decode(&part)
+	err := partRepository.collection.FindOne(ctx, bson.M{"model": model}).Decode(&part)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
