@@ -44,22 +44,22 @@ type Part struct {
 	Model string `bson:"model" json:"model"`
 	Specs specs  `bson:"specs" json:"specs"`
 	// Benchmark   benchmark `bson:"benchmark" json:"benchmark"`
-	PriceCents  int64     `bson:"price_cents" json:"price_cents"`
-	URL         string    `bson:"url" json:"url"`
-	Store       string    `bson:"store" json:"store"` // Kabum, Amazon, etc
-	LastUpdated time.Time `bson:"last_updated" json:"last_updated"`
+	PriceCents int64     `bson:"price_cents" json:"price_cents"`
+	URL        string    `bson:"url" json:"url"`
+	Store      string    `bson:"store" json:"store"` // Kabum, Amazon, etc
+	UpdatedAt  time.Time `bson:"updated_at" json:"updated_at"`
 }
 
 func NewPart(partType, brand, model string, specs specs, priceCents int64, url string, store string) *Part {
 	return &Part{
-		ID:          primitive.NewObjectID().Hex(),
-		Type:        partType,
-		Brand:       brand,
-		Model:       model,
-		Specs:       specs,
-		PriceCents:  priceCents,
-		URL:         url,
-		Store:       store,
-		LastUpdated: time.Now(),
+		ID:         primitive.NewObjectID().Hex(),
+		Type:       partType,
+		Brand:      brand,
+		Model:      model,
+		Specs:      specs,
+		PriceCents: priceCents,
+		URL:        url,
+		Store:      store,
+		UpdatedAt:  time.Now(),
 	}
 }
