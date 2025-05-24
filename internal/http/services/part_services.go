@@ -1,13 +1,12 @@
 package services
 
 import (
-	"errors"
 	"log"
 	"time"
 
 	"github.com/Luzin7/pcideal-be/internal/contracts"
 	"github.com/Luzin7/pcideal-be/internal/core/models"
-	"github.com/Luzin7/pcideal-be/pkg/times"
+	"github.com/Luzin7/pcideal-be/internal/errors"
 )
 
 type PartService struct {
@@ -22,15 +21,15 @@ func NewPartService(partRepository contracts.PartContract, scrapperClient contra
 	}
 }
 
-func (partService *PartService) CreatePart(part *models.Part) error {
+func (partService *PartService) CreatePart(part *models.Part) *errors.ErrService {
 	partAlreadyExist, err := partService.PartRepository.GetPartByModel(part.Model)
 
 	if err != nil {
-		return err
+		return errors.ErrInternalServerError()
 	}
 
 	if partAlreadyExist != nil {
-		return errors.New("part already exists")
+		return errors.ErrAlreadyExists("part")
 	}
 
 	newPart := models.NewPart(
@@ -46,33 +45,41 @@ func (partService *PartService) CreatePart(part *models.Part) error {
 	err = partService.PartRepository.CreatePart(newPart)
 
 	if err != nil {
-		return err
+		return errors.ErrInternalServerError()
 	}
 
 	return nil
 }
 
-func (partService *PartService) GetAllParts() ([]*models.Part, error) {
+func (partService *PartService) GetAllParts() ([]*models.Part, *errors.ErrService) {
 	parts, err := partService.PartRepository.GetAllParts()
 
 	if err != nil {
-		return nil, err
+		return nil, errors.ErrInternalServerError()
+	}
+
+	if len(parts) == 0 {
+		return nil, errors.ErrNotFound("parts")
 	}
 
 	return parts, nil
 }
 
-func (partService *PartService) UpdatePart(partId string) error {
+func (partService *PartService) UpdatePart(partId string) *errors.ErrService {
 	part, err := partService.PartRepository.GetPartByID(partId)
 
 	if err != nil {
-		return errors.New("part not found")
+		return errors.ErrInternalServerError()
+	}
+
+	if part == nil {
+		return errors.ErrNotFound("part")
 	}
 
 	scrapedPart, err := partService.ScraperClient.ScrapeProduct(part.URL)
 
 	if err != nil {
-		return errors.New("error scraping product")
+		return errors.ErrInternalServerError()
 	}
 
 	part.Specs = scrapedPart.Specs
@@ -82,44 +89,50 @@ func (partService *PartService) UpdatePart(partId string) error {
 	err = partService.PartRepository.UpdatePart(partId, part)
 
 	if err != nil {
-		return errors.New("error updating part")
+		return errors.ErrInternalServerError()
 	}
 
 	return nil
 }
 
-func (partService *PartService) GetPartByID(id string) (*models.Part, error) {
+func (partService *PartService) GetPartByID(id string) (*models.Part, *errors.ErrService) {
 	part, err := partService.PartRepository.GetPartByID(id)
 
 	if err != nil {
-		return nil, errors.New("part not found")
+		return nil, errors.ErrInternalServerError()
 	}
 
-	if part.UpdatedAt.Unix()-time.Now().Unix() >= times.OneHourInSeconds*2 {
-		go func() {
-			err := partService.UpdatePart(part.ID)
-			if err != nil {
-				log.Printf("error updating part: %v", err)
-			}
-		}()
+	if part == nil {
+		return nil, errors.ErrNotFound("part")
 	}
+
+	// if time.Since(part.UpdatedAt) >= 2*time.Hour {
+	// 	go func(partID string) {
+	// 		if err := partService.UpdatePart(partID); err != nil {
+	// 			log.Printf("async update error for part %s: %v", partID, err)
+	// 		}
+	// 	}(part.ID)
+	// }
 
 	return part, nil
 }
-func (partService *PartService) GetPartByModel(model string) (*models.Part, error) {
+func (partService *PartService) GetPartByModel(model string) (*models.Part, *errors.ErrService) {
 	part, err := partService.PartRepository.GetPartByModel(model)
 
 	if err != nil {
-		return nil, err
+		return nil, errors.ErrInternalServerError()
 	}
 
-	if part.UpdatedAt.Unix()-time.Now().Unix() >= times.OneHourInSeconds*2 {
-		go func() {
-			err := partService.UpdatePart(part.ID)
-			if err != nil {
-				log.Printf("error updating part: %v", err)
+	if part == nil {
+		return nil, errors.ErrNotFound("part")
+	}
+
+	if time.Since(part.UpdatedAt) >= 2*time.Hour {
+		go func(partID string) {
+			if err := partService.UpdatePart(partID); err != nil {
+				log.Printf("async update error for part %s: %v", partID, err)
 			}
-		}()
+		}(part.ID)
 	}
 
 	return part, nil
