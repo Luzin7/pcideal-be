@@ -3,6 +3,7 @@ package external
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -69,6 +70,8 @@ func (s *ScraperHTTPClient) ScrapeProduct(productLink string) (*models.Part, err
 	if err != nil {
 		return nil, err
 	}
+
+	log.Printf("Scraped part: %+v", part)
 
 	return &part, nil
 }
