@@ -106,13 +106,13 @@ func (partService *PartService) GetPartByID(id string) (*models.Part, *errors.Er
 		return nil, errors.ErrNotFound("part")
 	}
 
-	// if time.Since(part.UpdatedAt) >= 2*time.Hour {
-	// 	go func(partID string) {
-	// 		if err := partService.UpdatePart(partID); err != nil {
-	// 			log.Printf("async update error for part %s: %v", partID, err)
-	// 		}
-	// 	}(part.ID)
-	// }
+	if time.Since(part.UpdatedAt) >= 2*time.Hour {
+		go func(partID string) {
+			if err := partService.UpdatePart(partID); err != nil {
+				log.Printf("async update error for part %s: %v", partID, err)
+			}
+		}(part.ID)
+	}
 
 	return part, nil
 }
