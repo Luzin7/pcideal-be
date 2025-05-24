@@ -111,7 +111,7 @@ func (partService *PartService) GetPartByID(id string) (*models.Part, *errors.Er
 			if err := partService.UpdatePart(partID); err != nil {
 				log.Printf("async update error for part %s: %v", partID, err)
 			}
-		}(part.ID)
+		}(part.ID.Hex())
 	}
 
 	return part, nil
@@ -132,7 +132,7 @@ func (partService *PartService) GetPartByModel(model string) (*models.Part, *err
 			if err := partService.UpdatePart(partID); err != nil {
 				log.Printf("async update error for part %s: %v", partID, err)
 			}
-		}(part.ID)
+		}(part.ID.Hex())
 	}
 
 	return part, nil
