@@ -2,6 +2,8 @@ package models
 
 import (
 	"testing"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestNewPrice(t *testing.T) {
@@ -11,7 +13,7 @@ func TestNewPrice(t *testing.T) {
 		t.Fatal("expected price to not be nil")
 	}
 
-	if price.ID == "" {
+	if price.ID == primitive.NilObjectID {
 		t.Errorf("expected price ID to be set")
 	}
 
