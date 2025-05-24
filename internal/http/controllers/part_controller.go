@@ -20,37 +20,38 @@ func (pc *PartController) GetAllParts(c *gin.Context) {
 	parts, err := pc.PartService.GetAllParts()
 
 	if err != nil {
-		c.JSON(err.StatusCode, gin.H{"error": err.Message})
+		c.JSON(err.StatusCode, gin.H{"code": err.StatusCode, "message": err.Message})
 		return
 	}
 
-	c.JSON(http.StatusOK, parts)
+	c.JSON(http.StatusOK, gin.H{"data": parts})
 }
 
 func (pc *PartController) GetPartByID(c *gin.Context) {
 	id := c.Param("id")
+
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": "ID não pode ser vazio"})
+		return
+	}
+
 	part, err := pc.PartService.GetPartByID(id)
 
 	if err != nil {
 		log.Println("Erro ao buscar peça:", err)
-		c.JSON(err.StatusCode, err.Message)
+		c.JSON(err.StatusCode, gin.H{"code": err.StatusCode, "message": err.Message})
 		return
 	}
 
-	c.JSON(http.StatusOK, part)
+	c.JSON(http.StatusOK, gin.H{"data": part})
 }
 func (pc *PartController) GetPartByModel(c *gin.Context) {
 	model := c.Param("model")
 	part, err := pc.PartService.GetPartByModel(model)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao buscar peça"})
+		c.JSON(err.StatusCode, gin.H{"code": err.StatusCode, "message": err.Message})
 		return
 	}
 
-	if part == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Peça não encontrada"})
-		return
-	}
-
-	c.JSON(http.StatusOK, part)
+	c.JSON(http.StatusOK, gin.H{"data": part})
 }
