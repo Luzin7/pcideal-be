@@ -38,11 +38,11 @@ type specs struct {
 // }
 
 type Part struct {
-	ID    string `bson:"_id" json:"id"`
-	Type  string `bson:"type" json:"type"`   // CPU, GPU, MOTHERBOARD, RAM, SSD, PSU, CASE
-	Brand string `bson:"brand" json:"brand"` // AMD, Intel, NVIDIA, etc
-	Model string `bson:"model" json:"model"`
-	Specs specs  `bson:"specs" json:"specs"`
+	ID    primitive.ObjectID `bson:"_id" json:"id"`
+	Type  string             `bson:"type" json:"type"`   // CPU, GPU, MOTHERBOARD, RAM, SSD, PSU, CASE
+	Brand string             `bson:"brand" json:"brand"` // AMD, Intel, NVIDIA, etc
+	Model string             `bson:"model" json:"model"`
+	Specs specs              `bson:"specs" json:"specs"`
 	// Benchmark   benchmark `bson:"benchmark" json:"benchmark"`
 	PriceCents int64     `bson:"price_cents" json:"price_cents"`
 	URL        string    `bson:"url" json:"url"`
@@ -52,7 +52,7 @@ type Part struct {
 
 func NewPart(partType, brand, model string, specs specs, priceCents int64, url string, store string) *Part {
 	return &Part{
-		ID:         primitive.NewObjectID().Hex(),
+		ID:         primitive.NewObjectID(),
 		Type:       partType,
 		Brand:      brand,
 		Model:      model,
