@@ -5,6 +5,7 @@ import (
 
 	"github.com/Luzin7/pcideal-be/internal/core/models"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -90,7 +91,12 @@ func (partRepository *PartRepository) GetPartByID(id string) (*models.Part, erro
 
 	var part models.Part
 
-	err := partRepository.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&part)
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	err = partRepository.collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&part)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
