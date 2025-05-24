@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/Luzin7/pcideal-be/internal/http/services"
@@ -17,8 +18,9 @@ func NewPartController(partService *services.PartService) *PartController {
 
 func (pc *PartController) GetAllParts(c *gin.Context) {
 	parts, err := pc.PartService.GetAllParts()
+
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao buscar peças"})
+		c.JSON(err.StatusCode, gin.H{"error": err.Message})
 		return
 	}
 
@@ -28,13 +30,10 @@ func (pc *PartController) GetAllParts(c *gin.Context) {
 func (pc *PartController) GetPartByID(c *gin.Context) {
 	id := c.Param("id")
 	part, err := pc.PartService.GetPartByID(id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao buscar peça"})
-		return
-	}
 
-	if part == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Peça não encontrada"})
+	if err != nil {
+		log.Println("Erro ao buscar peça:", err)
+		c.JSON(err.StatusCode, err.Message)
 		return
 	}
 
