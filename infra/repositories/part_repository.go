@@ -36,7 +36,12 @@ func (partRepository *PartRepository) CreatePart(part *models.Part) error {
 func (partRepository *PartRepository) UpdatePart(partId string, part *models.Part) error {
 	ctx := context.TODO()
 
-	_, err := partRepository.collection.UpdateOne(ctx, bson.M{"_id": partId}, bson.M{
+	objID, err := primitive.ObjectIDFromHex(partId)
+	if err != nil {
+		return err
+	}
+
+	_, err = partRepository.collection.UpdateOne(ctx, bson.M{"_id": objID}, bson.M{
 		"$set": bson.M{
 			"type":        part.Type,
 			"brand":       part.Brand,
