@@ -2,6 +2,8 @@ package models
 
 import (
 	"testing"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestNewPart(t *testing.T) {
@@ -36,7 +38,7 @@ func TestNewPart(t *testing.T) {
 		t.Errorf("expected Store to be Kabum, got %s", part.Store)
 	}
 
-	if part.ID == "" {
+	if part.ID == primitive.NilObjectID {
 		t.Errorf("expected non-empty ID")
 	}
 }
