@@ -19,7 +19,7 @@ func NewScraperHTTPClient(baseURL string) *ScraperHTTPClient {
 	return &ScraperHTTPClient{
 		BaseURL: baseURL,
 		Client: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: 60 * time.Second,
 		},
 	}
 }
@@ -50,7 +50,6 @@ func (s *ScraperHTTPClient) ScrapeProduct(productLink string) (*models.Part, err
 	if err != nil {
 		return nil, err
 	}
-
 	query := req.URL.Query()
 	query.Add("productLink", productLink)
 	req.URL.RawQuery = query.Encode()
@@ -58,6 +57,7 @@ func (s *ScraperHTTPClient) ScrapeProduct(productLink string) (*models.Part, err
 	resp, err := s.Client.Do(req)
 
 	if err != nil {
+		log.Printf("Error making request: %v", err)
 		return nil, err
 	}
 
@@ -68,6 +68,7 @@ func (s *ScraperHTTPClient) ScrapeProduct(productLink string) (*models.Part, err
 	err = json.NewDecoder(resp.Body).Decode(&part)
 
 	if err != nil {
+		log.Printf("Error decoding response: %v", err)
 		return nil, err
 	}
 
