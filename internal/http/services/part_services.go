@@ -89,6 +89,7 @@ func (partService *PartService) UpdatePart(partId string) *errors.ErrService {
 	err = partService.PartRepository.UpdatePart(partId, part)
 
 	if err != nil {
+		log.Printf("Error updating part: %v", err)
 		return errors.ErrInternalServerError()
 	}
 
