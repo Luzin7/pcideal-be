@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"log"
 
 	"github.com/Luzin7/pcideal-be/internal/core/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -35,9 +36,13 @@ func (partRepository *PartRepository) CreatePart(part *models.Part) error {
 
 func (partRepository *PartRepository) UpdatePart(partId string, part *models.Part) error {
 	ctx := context.TODO()
+	log.Printf("Updating part with ID: %s", partId)
+	log.Printf("Part details: %+v", part)
 
 	objID, err := primitive.ObjectIDFromHex(partId)
+
 	if err != nil {
+		log.Printf("Error converting part ID to ObjectID: %v", err)
 		return err
 	}
 
@@ -55,6 +60,7 @@ func (partRepository *PartRepository) UpdatePart(partId string, part *models.Par
 	})
 
 	if err != nil {
+		log.Printf("Error updating part: %v", err)
 		return err
 	}
 
