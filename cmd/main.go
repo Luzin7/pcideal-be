@@ -28,9 +28,14 @@ func main() {
 		log.Fatal("Erro ao conectar ao banco de dados")
 	}
 
+	googleAiClient, err := external.NewGoogleAIClient(os.Getenv("GOOGLE_AI_API_KEY"))
+	if err != nil {
+		log.Fatal("Erro ao criar o cliente Google AI:", err)
+	}
+
 	partRepository := repositories.NewPartRepository(db)
 	scraperClient := external.NewScraperHTTPClient(os.Getenv("SCRAPER_API_URL"))
-	partService := services.NewPartService(partRepository, scraperClient)
+	partService := services.NewPartService(partRepository, scraperClient, googleAiClient)
 	partController := controllers.NewPartController(partService)
 
 	router := routes.SetupRouter(partController)
