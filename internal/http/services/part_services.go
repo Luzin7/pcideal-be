@@ -12,12 +12,14 @@ import (
 type PartService struct {
 	PartRepository contracts.PartContract
 	ScraperClient  contracts.ScraperClient
+	GoogleAIClient contracts.GoogleAIContract
 }
 
-func NewPartService(partRepository contracts.PartContract, scrapperClient contracts.ScraperClient) *PartService {
+func NewPartService(partRepository contracts.PartContract, scrapperClient contracts.ScraperClient, googleAIContract contracts.GoogleAIContract) *PartService {
 	return &PartService{
 		PartRepository: partRepository,
 		ScraperClient:  scrapperClient,
+		GoogleAIClient: googleAIContract,
 	}
 }
 
