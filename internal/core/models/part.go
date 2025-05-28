@@ -9,24 +9,28 @@ import (
 // Specs representa as especificações técnicas de uma peça
 type specs struct {
 	// CPU e Motherboard
-	Socket     string  `bson:"socket,omitempty" json:"socket,omitempty"`           // AM4, LGA1700, etc
-	TDP        int     `bson:"tdp,omitempty" json:"tdp,omitempty"`                 // em Watts
-	ClockSpeed float64 `bson:"clock_speed,omitempty" json:"clock_speed,omitempty"` // em GHz
-	BoostClock float64 `bson:"boost_clock,omitempty" json:"boost_clock,omitempty"` // em GHz
+	Socket           string  `bson:"socket,omitempty" json:"socket,omitempty"`           // AM4, LGA1700, etc
+	TDP              int64   `bson:"tdp,omitempty" json:"tdp,omitempty"`                 // em Watts
+	ClockSpeed       float64 `bson:"clock_speed,omitempty" json:"clock_speed,omitempty"` // em GHz
+	BoostClock       float64 `bson:"boost_clock,omitempty" json:"boost_clock,omitempty"` // em GHz
+	MemoryMaxSpeed   int64   `bson:"memory_max_speed,omitempty" json:"memory_max_speed,omitempty"`
+	Chipset          string  `bson:"chipset,omitempty" json:"chipset,omitempty"`
+	CpuCompatibility string  `bson:"cpu_compatibility,omitempty" json:"cpu_compatibility,omitempty"`
 
 	// RAM e Motherboard
 	MemoryType  string `bson:"memory_type,omitempty" json:"memory_type,omitempty"` // DDR4, DDR5
-	MemorySlots int    `bson:"memory_slots,omitempty" json:"memory_slots,omitempty"`
+	MemorySlots int64  `bson:"memory_slots,omitempty" json:"memory_slots,omitempty"`
 
 	// RAM e SSD
-	Capacity int `bson:"capacity,omitempty" json:"capacity,omitempty"` // em GB
-	Speed    int `bson:"speed,omitempty" json:"speed,omitempty"`       // MHz para RAM
+	Capacity int64 `bson:"capacity,omitempty" json:"capacity,omitempty"` // em GB
+	Speed    int64 `bson:"speed,omitempty" json:"speed,omitempty"`       // MHz para RAM
 
 	// GPU e SSD
 	Interface string `bson:"interface,omitempty" json:"interface,omitempty"` // PCIe 3.0, PCIe 4.0
 
 	// GPU
-	PowerSupply int `bson:"power_supply,omitempty" json:"power_supply,omitempty"` // Fonte recomendada em W
+	PowerSupply int64  `bson:"power_supply,omitempty" json:"power_supply,omitempty"` // Fonte recomendada em W
+	VideoMemory string `bson:"video_memory,omitempty" json:"video_memory,omitempty"`
 
 	// Motherboard e Case
 	FormFactor string `bson:"form_factor,omitempty" json:"form_factor,omitempty"` // ATX, mATX, ITX
