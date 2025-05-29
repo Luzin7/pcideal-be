@@ -28,7 +28,7 @@ func main() {
 		log.Fatal("Erro ao conectar ao banco de dados")
 	}
 
-	googleAiClient, err := external.NewGoogleAIClient(os.Getenv("GOOGLE_AI_API_KEY"))
+	googleAiClient, err := external.NewGoogleAIClient(os.Getenv("GOOGLE_AI_API_KEY"), db)
 	if err != nil {
 		log.Fatal("Erro ao criar o cliente Google AI:", err)
 	}
