@@ -45,6 +45,7 @@ func (pc *PartController) GetPartByID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"data": part})
 }
+
 func (pc *PartController) GetPartByModel(c *gin.Context) {
 	model := c.Param("model")
 	part, err := pc.PartService.GetPartByModel(model)
@@ -53,5 +54,27 @@ func (pc *PartController) GetPartByModel(c *gin.Context) {
 		return
 	}
 
+	c.JSON(http.StatusOK, gin.H{"data": part})
+}
+
+func (pc *PartController) GetBuildRecomendations(c *gin.Context) {
+	var req struct {
+		UsageType     string `json:"usage_type"`
+		CpuPreference string `json:"cpu_preference"`
+		GpuPreference string `json:"gpu_preference"`
+		Budget        int64  `json:"budget"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": "Invalid request body"})
+		return
+	}
+
+	part, err := pc.PartService.GenerateBuildRecomendations(req.UsageType, req.CpuPreference, req.GpuPreference, req.Budget)
+	if err != nil {
+		c.JSON(err.StatusCode, gin.H{"code": err.StatusCode, "message": err.Message})
+		return
+	}
+	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": part})
 }
