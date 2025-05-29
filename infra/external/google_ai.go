@@ -2,7 +2,10 @@ package external
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
+	"regexp"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -11,8 +14,9 @@ import (
 )
 
 type GoogleAIClient struct {
-	APIKey string
-	Client *genai.Client
+	APIKey      string
+	Client      *genai.Client
+	BasePrompts *BasePrompts
 }
 
 type BasePrompts struct {
@@ -32,7 +36,7 @@ func NewBasePrompts(client *mongo.Database) *BasePrompts {
 	}
 }
 
-func NewGoogleAIClient(APIKey string) (*GoogleAIClient, error) {
+func NewGoogleAIClient(APIKey string, db *mongo.Database) (*GoogleAIClient, error) {
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
 		APIKey:  APIKey,
@@ -42,9 +46,12 @@ func NewGoogleAIClient(APIKey string) (*GoogleAIClient, error) {
 		return nil, fmt.Errorf("failed to create client: %w", err)
 	}
 
+	basePrompts := NewBasePrompts(db)
+
 	return &GoogleAIClient{
-		APIKey: APIKey,
-		Client: client,
+		APIKey:      APIKey,
+		Client:      client,
+		BasePrompts: basePrompts,
 	}, nil
 }
 
@@ -65,8 +72,8 @@ func sanitizeInput(input string) string {
 	input = strings.ReplaceAll(input, "\"", "")
 	input = strings.ReplaceAll(input, "'", "")
 
-	if len(input) > 2000 {
-		input = input[:2000]
+	if len(input) > 200 {
+		input = input[:200]
 	}
 
 	return input
@@ -90,10 +97,12 @@ func validatePreference(input string, typeOfPreference string) (string, error) {
 		return "", fmt.Errorf("preferência de %s inválida: %s", typeOfPreference, input)
 	}
 
-	return input, nil
+	userPreference := fmt.Sprintf("o cliente possui preferencia de %s para sua %s", input, typeOfPreference)
+	log.Print(userPreference)
+	return userPreference, nil
 }
 
-func (bp *BasePrompts) GetBasePrompt() (string, error) {
+func (bp *BasePrompts) getBasePrompt() (string, error) {
 	ctx := context.Background()
 
 	var promptDoc PromptDocument
@@ -105,8 +114,8 @@ func (bp *BasePrompts) GetBasePrompt() (string, error) {
 	return promptDoc.Content, nil
 }
 
-func (bp *BasePrompts) BuildComputerPrompt(usageType, cpuPreference string, gpuPreference string, budget int64) (string, error) {
-	basePrompt, err := bp.GetBasePrompt()
+func (c *GoogleAIClient) BuildComputerPrompt(usageType string, cpuPreference string, gpuPreference string, budget int64) (string, error) {
+	basePrompt, err := c.BasePrompts.getBasePrompt()
 	if err != nil {
 		return "", err
 	}
@@ -115,13 +124,13 @@ func (bp *BasePrompts) BuildComputerPrompt(usageType, cpuPreference string, gpuP
 
 	cpuPreference, err = validatePreference(cpuPreference, "cpu")
 	if err != nil {
-		cpuPreference = "Não tenho preferência"
+		cpuPreference = "o cliente não tem preferência de marca de CPU"
 		fmt.Printf("Aviso: %v. Usando valor padrão.\n", err)
 	}
 
 	gpuPreference, err = validatePreference(gpuPreference, "gpu")
 	if err != nil {
-		gpuPreference = "Não tenho preferência"
+		gpuPreference = "o cliente não tem preferência de marca de GPU"
 		fmt.Printf("Aviso: %v. Usando valor padrão.\n", err)
 	}
 
@@ -131,23 +140,56 @@ Um cliente quer um computador que será utilizado para %s:
 
 %s, %s, o orçamento dele é de %d reais.`, basePrompt, usageType, cpuPreference, gpuPreference, budget)
 
+	log.Print(fullPrompt)
+
 	return fullPrompt, nil
 }
 
-func (c *GoogleAIClient) GenerateBuilds(prompt string) (string, error) {
+func CleanAndParseGeminiResponse(raw string) (map[string]interface{}, error) {
+	re := regexp.MustCompile("(?s)```json\\n(.*?)\\n```")
+	match := re.FindStringSubmatch(raw)
+
+	var cleaned string
+	if len(match) > 1 {
+		cleaned = match[1]
+	} else {
+		cleaned = raw
+	}
+
+	cleaned = strings.ReplaceAll(cleaned, "\\n", "")
+	cleaned = strings.ReplaceAll(cleaned, "\\\"", "\"")
+	cleaned = strings.ReplaceAll(cleaned, "\\\\", "\\")
+
+	var result map[string]interface{}
+	err := json.Unmarshal([]byte(cleaned), &result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal cleaned response: %w", err)
+	}
+
+	return result, nil
+}
+
+func (c *GoogleAIClient) GenerateBuilds(prompt string) (map[string]interface{}, error) {
 	ctx := context.Background()
 
-	result, err := c.Client.Models.GenerateContent(
+	rawResponse, err := c.Client.Models.GenerateContent(
 		ctx,
 		"gemini-2.0-flash",
 		genai.Text(prompt),
 		nil,
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate builds: %w", err)
+		return nil, fmt.Errorf("failed to generate builds: %w", err)
 	}
 
-	return result.Text(), nil
+	log.Print(rawResponse)
+
+	cleanedJSON, err := CleanAndParseGeminiResponse(rawResponse.Text())
+	if err != nil {
+		return nil, fmt.Errorf("failed to clean raw response: %s", err)
+	}
+
+	return cleanedJSON, nil
 }
 
 func (c *GoogleAIClient) Close() error {
