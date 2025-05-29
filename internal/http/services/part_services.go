@@ -119,6 +119,7 @@ func (partService *PartService) GetPartByID(id string) (*models.Part, *errors.Er
 
 	return part, nil
 }
+
 func (partService *PartService) GetPartByModel(model string) (*models.Part, *errors.ErrService) {
 	part, err := partService.PartRepository.GetPartByModel(model)
 
@@ -139,4 +140,18 @@ func (partService *PartService) GetPartByModel(model string) (*models.Part, *err
 	}
 
 	return part, nil
+}
+
+func (partService *PartService) GenerateBuildRecomendations(usageType string, cpuPreference string, gpuPreference string, budget int64) (map[string]interface{}, *errors.ErrService) {
+	prompt, err := partService.GoogleAIClient.BuildComputerPrompt(usageType, cpuPreference, gpuPreference, budget)
+	if err != nil {
+		return nil, errors.ErrInternalServerError()
+	}
+
+	recommendedBuilds, err := partService.GoogleAIClient.GenerateBuilds(prompt)
+	if err != nil {
+		return nil, errors.ErrInternalServerError()
+	}
+
+	return recommendedBuilds, nil
 }
