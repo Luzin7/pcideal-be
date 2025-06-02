@@ -124,21 +124,21 @@ func (c *GoogleAIClient) BuildComputerPrompt(usageType string, cpuPreference str
 
 	cpuPreference, err = validatePreference(cpuPreference, "cpu")
 	if err != nil {
-		cpuPreference = "o cliente não tem preferência de marca de CPU"
+		cpuPreference = "the client have no preferences of CPU brand"
 		fmt.Printf("Aviso: %v. Usando valor padrão.\n", err)
 	}
 
 	gpuPreference, err = validatePreference(gpuPreference, "gpu")
 	if err != nil {
-		gpuPreference = "o cliente não tem preferência de marca de GPU"
+		gpuPreference = "the client have no preferences of GPU brand"
 		fmt.Printf("Aviso: %v. Usando valor padrão.\n", err)
 	}
 
 	fullPrompt := fmt.Sprintf(`%s
 
-Um cliente quer um computador que será utilizado para %s:
+The client wants a PC that will be used for %s:
 
-%s, %s, o orçamento dele é de %d reais.`, basePrompt, usageType, cpuPreference, gpuPreference, budget)
+%s, %s, his budget is %d BRL.`, basePrompt, usageType, cpuPreference, gpuPreference, budget)
 
 	log.Print(fullPrompt)
 
