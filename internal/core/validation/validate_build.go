@@ -8,6 +8,8 @@ import (
 	"strings"
 	"unicode"
 
+	"slices"
+
 	"github.com/Luzin7/pcideal-be/internal/core/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -139,6 +141,70 @@ func (v *ValidateBuild) findBestMatch(targetName string, parts []models.Part) *m
 	return bestMatch
 }
 
+type compatibilityMap struct {
+	name    string
+	mapping map[string][]string
+}
+
+var compatibilityMaps = []compatibilityMap{
+	{
+		name: "chipset_socket",
+		mapping: map[string][]string{
+			// Intel - 13th & 12th Gen (Raptor Lake/Alder Lake)
+			"Z790": {"LGA 1700"},
+			"Z690": {"LGA 1700"},
+			"B760": {"LGA 1700"},
+			"B660": {"LGA 1700"},
+			"H770": {"LGA 1700"},
+			"H670": {"LGA 1700"},
+			"H610": {"LGA 1700"},
+
+			// Intel - 11th Gen (Rocket Lake)
+			"Z590": {"LGA 1200"},
+			"B560": {"LGA 1200"},
+			"H570": {"LGA 1200"},
+			"H510": {"LGA 1200"},
+
+			// AMD - AM5 (Ryzen 7000 Series)
+			"X670E": {"AM5"},
+			"X670":  {"AM5"},
+			"B650E": {"AM5"},
+			"B650":  {"AM5"},
+
+			// AMD - AM4 (Ryzen 5000/3000 Series)
+			"X570": {"AM4"},
+			"B550": {"AM4"},
+			"A520": {"AM4"},
+			"X470": {"AM4"},
+			"B450": {"AM4"},
+		},
+	},
+}
+
+// validateCompatibility checks if a given value is compatible with a specific key in a compatibility map.
+// It takes three parameters:
+//   - validationType: string that specifies which compatibility map to use
+//   - key: string representing the key to check in the compatibility map
+//   - value: string to validate against the compatible values
+//
+// The function returns true if:
+//   - The value is found in the list of compatible values for the given key
+//
+// Returns false if the value is not in the list of compatible values for the given key.
+func validateCompatibility(validationType string, key string, value string) bool {
+	for _, cMap := range compatibilityMaps {
+		if cMap.name == validationType {
+			compatibleValues, exists := cMap.mapping[key]
+			if !exists {
+				fmt.Printf("Aviso: Chave %s não encontrada no mapa de compatibilidade %s.\n", key, validationType)
+				return false
+			}
+			return slices.Contains(compatibleValues, value)
+		}
+	}
+	return false
+}
+
 func (v *ValidateBuild) ValidateCPUAndMotherboard(cpu spec, mobo spec) bool {
 	cpuParts, err := v.findParts(cpu.model, "cpu")
 	if err != nil {
@@ -160,9 +226,10 @@ func (v *ValidateBuild) ValidateCPUAndMotherboard(cpu spec, mobo spec) bool {
 		return false
 	}
 
-	if bestCPUMatch.Specs.Socket != bestMoboMatch.Specs.Socket {
-		return false
+	if bestCPUMatch.Specs.Socket == "" || bestMoboMatch.Specs.Socket == "" {
+		fmt.Println("Aviso: Validação de socket parcial devido a dados incompletos.")
+		return true
 	}
 
-	return true
+	return validateCompatibility("chipset_socket", bestMoboMatch.Specs.Chipset, bestCPUMatch.Specs.Socket)
 }
