@@ -196,7 +196,7 @@ func validateCompatibility(validationType string, key string, value string) bool
 		if cMap.name == validationType {
 			compatibleValues, exists := cMap.mapping[key]
 			if !exists {
-				fmt.Printf("Aviso: Chave %s não encontrada no mapa de compatibilidade %s.\n", key, validationType)
+				fmt.Printf("Warning: Key %s not found to %s", key, validationType)
 				return false
 			}
 			return slices.Contains(compatibleValues, value)
@@ -227,7 +227,7 @@ func (v *ValidateBuild) ValidateCPUAndMotherboard(cpu spec, mobo spec) bool {
 	}
 
 	if bestCPUMatch.Specs.Socket == "" || bestMoboMatch.Specs.Socket == "" {
-		fmt.Println("Aviso: Validação de socket parcial devido a dados incompletos.")
+		fmt.Println("Warning: validation is partial")
 		return true
 	}
 
