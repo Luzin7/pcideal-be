@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"regexp"
 	"strings"
 
@@ -97,8 +96,7 @@ func validatePreference(input string, typeOfPreference string) (string, error) {
 		return "", fmt.Errorf("preferência de %s inválida: %s", typeOfPreference, input)
 	}
 
-	userPreference := fmt.Sprintf("o cliente possui preferencia de %s para sua %s", input, typeOfPreference)
-	log.Print(userPreference)
+	userPreference := fmt.Sprintf("customer has %s preference for their %s", input, typeOfPreference)
 	return userPreference, nil
 }
 
@@ -140,8 +138,6 @@ The client wants a PC that will be used for %s:
 
 %s, %s, his budget is %d BRL.`, basePrompt, usageType, cpuPreference, gpuPreference, budget)
 
-	log.Print(fullPrompt)
-
 	return fullPrompt, nil
 }
 
@@ -181,8 +177,6 @@ func (c *GoogleAIClient) GenerateBuilds(prompt string) (map[string]interface{}, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate builds: %w", err)
 	}
-
-	log.Print(rawResponse)
 
 	cleanedJSON, err := CleanAndParseGeminiResponse(rawResponse.Text())
 	if err != nil {
