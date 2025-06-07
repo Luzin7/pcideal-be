@@ -13,13 +13,15 @@ type PartService struct {
 	PartRepository contracts.PartContract
 	ScraperClient  contracts.ScraperClient
 	GoogleAIClient contracts.GoogleAIContract
+	ValidateBuild  contracts.ValidateBuildContract
 }
 
-func NewPartService(partRepository contracts.PartContract, scrapperClient contracts.ScraperClient, googleAIContract contracts.GoogleAIContract) *PartService {
+func NewPartService(partRepository contracts.PartContract, scrapperClient contracts.ScraperClient, googleAIContract contracts.GoogleAIContract, validateBuild contracts.ValidateBuildContract) *PartService {
 	return &PartService{
 		PartRepository: partRepository,
 		ScraperClient:  scrapperClient,
 		GoogleAIClient: googleAIContract,
+		ValidateBuild:  validateBuild,
 	}
 }
 
@@ -152,6 +154,12 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 	if err != nil {
 		return nil, errors.ErrInternalServerError()
 	}
+
+	// log.Print(recommendedBuilds)
+
+	isBuildValid := partService.ValidateBuild.ValidateCPUAndMotherboard("AMD Ryzen 5 4600G", "ASRock A520M-HDV")
+
+	log.Print(isBuildValid)
 
 	return recommendedBuilds, nil
 }
