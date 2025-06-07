@@ -3,8 +3,8 @@ package validation
 import (
 	"context"
 	"fmt"
+	"log"
 	"math"
-	"regexp"
 	"strings"
 	"unicode"
 
@@ -25,10 +25,6 @@ func NewValidateBuild(client *mongo.Database) *ValidateBuild {
 	return &ValidateBuild{
 		collection,
 	}
-}
-
-type spec struct {
-	model string
 }
 
 func normalizeString(s string) string {
@@ -81,43 +77,61 @@ func levenshtein(a, b string) int {
 	return prev[len(a)]
 }
 
-func dynamicRegex(productName string) string {
-	escaped := regexp.QuoteMeta(strings.TrimSpace(productName))
-	return fmt.Sprintf("(?i).*%s.*", escaped)
-}
-
 func (v *ValidateBuild) findParts(productName string, productType string) ([]models.Part, error) {
 	if len(productName) == 0 {
 		return nil, nil
 	}
 
-	regexPattern := dynamicRegex(productName)
+	wordsInProductName := strings.Fields(strings.ToLower(productName))
+	var wordsToFilter []bson.M
+	for _, w := range wordsInProductName {
+		wordsToFilter = append(wordsToFilter, bson.M{
+			"model": bson.M{
+				"$regex":   w,
+				"$options": "i",
+			},
+		})
+	}
 
 	filter := bson.M{
-		"type": productType,
-		"name": bson.M{
-			"$regex": regexPattern,
-		},
+		"type": strings.ToUpper(productType),
+		"$or":  wordsToFilter,
 	}
+
+	log.Printf("productName: %s", productName)
+	log.Printf("filter: %+v", filter)
 
 	cursor, err := v.collection.Find(context.Background(), filter)
 	if err != nil {
+		log.Printf("Erro ao executar a query: %v", err)
 		return nil, err
 	}
 	defer cursor.Close(context.Background())
 
 	var parts []models.Part
 	if err = cursor.All(context.Background(), &parts); err != nil {
+		log.Printf("Erro ao decodificar os resultados: %v", err)
 		return nil, err
 	}
+
+	if len(parts) <= 0 {
+		log.Printf("Nenhum resultado encontrado para %s %s", productType, productName)
+		return nil, fmt.Errorf("nao foi encontrado %s %s", productType, productName)
+	}
+
+	log.Printf("Resultados encontrados: %v", parts)
 
 	return parts, nil
 }
 
 func (v *ValidateBuild) findBestMatch(targetName string, parts []models.Part) *models.Part {
 	if len(parts) == 0 {
+		log.Printf("parts é vazio")
 		return nil
 	}
+
+	log.Print(targetName)
+	log.Print(parts)
 
 	normalizedTarget := normalizeString(targetName)
 	bestMatch := &parts[0]
@@ -133,10 +147,12 @@ func (v *ValidateBuild) findBestMatch(targetName string, parts []models.Part) *m
 		}
 	}
 
-	threshold := len(normalizedTarget) / 2
-	if bestDistance > threshold {
-		return nil
-	}
+	// threshold := len(normalizedTarget) / 2
+	// if bestDistance > threshold {
+	// 	return nil
+	// }
+
+	log.Printf("melhor distancia %d", bestDistance)
 
 	return bestMatch
 }
@@ -205,31 +221,38 @@ func validateCompatibility(validationType string, key string, value string) bool
 	return false
 }
 
-func (v *ValidateBuild) ValidateCPUAndMotherboard(cpu spec, mobo spec) bool {
-	cpuParts, err := v.findParts(cpu.model, "cpu")
+func (v *ValidateBuild) ValidateCPUAndMotherboard(cpu string, mobo string) bool {
+	cpuParts, err := v.findParts(cpu, "cpu")
 	if err != nil {
+		log.Printf("erro ao cpu: %s", err)
 		return false
 	}
 
-	moboParts, err := v.findParts(mobo.model, "motherboard")
+	moboParts, err := v.findParts(mobo, "motherboard")
 	if err != nil {
+		log.Printf("erro ao mobo: %s", err)
 		return false
 	}
 
-	bestCPUMatch := v.findBestMatch(cpu.model, cpuParts)
+	bestCPUMatch := v.findBestMatch(cpu, cpuParts)
 	if bestCPUMatch == nil {
+		log.Printf("erro ao cpu mathc: %s", err)
 		return false
 	}
 
-	bestMoboMatch := v.findBestMatch(mobo.model, moboParts)
+	bestMoboMatch := v.findBestMatch(mobo, moboParts)
 	if bestMoboMatch == nil {
+		log.Printf("erro ao cpu mathc: %s", err)
 		return false
 	}
 
 	if bestCPUMatch.Specs.Socket == "" || bestMoboMatch.Specs.Socket == "" {
+		log.Printf("a busca foi de %s e foi encontrado %s, assim como %s encontrou %s", cpu, bestCPUMatch.Model, mobo, bestMoboMatch.Model)
 		fmt.Println("Warning: validation is partial")
 		return true
 	}
+
+	log.Printf("a busca foi de %s e foi encontrado %s, assim como %s encontrou %s", cpu, bestCPUMatch.Model, mobo, bestMoboMatch.Model)
 
 	return validateCompatibility("chipset_socket", bestMoboMatch.Specs.Chipset, bestCPUMatch.Specs.Socket)
 }
