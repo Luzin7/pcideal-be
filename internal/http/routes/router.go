@@ -21,11 +21,5 @@ func SetupRouter(partController *controllers.PartController) *gin.Engine {
 		builds.POST("/recommendations", partController.GetBuildRecomendations)
 	}
 
-	// auth := api.Group("/auth")
-	// {
-	// 	auth.POST("/login", authController.Login)
-	// 	auth.POST("/register", authController.Register)
-	// }
-
 	return router
 }
