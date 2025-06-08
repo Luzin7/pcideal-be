@@ -10,18 +10,18 @@ import (
 )
 
 type PartService struct {
-	PartRepository contracts.PartContract
-	ScraperClient  contracts.ScraperClient
-	GoogleAIClient contracts.GoogleAIContract
-	ValidateBuild  contracts.ValidateBuildContract
+	PartRepository      contracts.PartContract
+	ScraperClient       contracts.ScraperClient
+	GoogleAIClient      contracts.GoogleAIContract
+	PartMatchingService contracts.PartMatchingContract
 }
 
-func NewPartService(partRepository contracts.PartContract, scrapperClient contracts.ScraperClient, googleAIContract contracts.GoogleAIContract, validateBuild contracts.ValidateBuildContract) *PartService {
+func NewPartService(partRepository contracts.PartContract, scrapperClient contracts.ScraperClient, googleAIContract contracts.GoogleAIContract, partMatchingService contracts.PartMatchingContract) *PartService {
 	return &PartService{
-		PartRepository: partRepository,
-		ScraperClient:  scrapperClient,
-		GoogleAIClient: googleAIContract,
-		ValidateBuild:  validateBuild,
+		PartRepository:      partRepository,
+		ScraperClient:       scrapperClient,
+		GoogleAIClient:      googleAIContract,
+		PartMatchingService: partMatchingService,
 	}
 }
 
@@ -155,11 +155,9 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 		return nil, errors.ErrInternalServerError()
 	}
 
-	// log.Print(recommendedBuilds)
+	// isBuildValid := validation.ValidateCPUAndMotherboard("AMD Ryzen 5 5600", "Placa-Mãe ASUS Prime B450M-GAMING/BR")
 
-	isBuildValid := partService.ValidateBuild.ValidateCPUAndMotherboard("AMD Ryzen 5 4600G", "ASRock A520M-HDV")
-
-	log.Print(isBuildValid)
+	// log.Print(isBuildValid)
 
 	return recommendedBuilds, nil
 }
