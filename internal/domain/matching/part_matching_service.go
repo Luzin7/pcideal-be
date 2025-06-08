@@ -33,46 +33,84 @@ func (pm *PartMatchingService) FindParts(productName, productType, productBrand 
 	if productType == "" {
 		return nil, fmt.Errorf("productType is empty")
 	}
-	if productBrand == "" {
-		return nil, fmt.Errorf("productBrand is empty")
-	}
 
 	lowerProductName := strings.ToLower(productName)
-	escapedProductName := regexp.QuoteMeta(lowerProductName)
+	words := strings.Fields(lowerProductName)
 
-	words := strings.Fields(escapedProductName)
-	var wordsToFilter []bson.M
+	andFilter := pm.buildFilter(productType, productBrand, words, true, true)
+	parts, err := pm.executeQuery(andFilter)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(parts) > 0 {
+		return parts, nil
+	}
+
+	orFilter := pm.buildFilter(productType, productBrand, words, false, true)
+	parts, err = pm.executeQuery(orFilter)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(parts) > 0 {
+		return parts, nil
+	}
+
+	noBrandFilter := pm.buildFilter(productType, "", words, false, false)
+	parts, err = pm.executeQuery(noBrandFilter)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(parts) > 0 {
+		return parts, nil
+	}
+
+	return nil, fmt.Errorf("no results found for type=%s, brand=%s, name=%s", productType, productBrand, productName)
+}
+
+func (pm *PartMatchingService) buildFilter(productType, productBrand string, words []string, useAnd, useBrand bool) bson.M {
+	var wordsFilter []bson.M
+	op := "$or"
+	if useAnd {
+		op = "$and"
+	}
+
 	for _, w := range words {
 		escapedWord := regexp.QuoteMeta(w)
-		regexPattern := fmt.Sprintf("(?i)\\b.*%s.*\\b", escapedWord)
-		wordsToFilter = append(wordsToFilter, bson.M{
-			"model": bson.M{
-				"$regex": regexPattern,
-			},
+		regexPattern := fmt.Sprintf("(?i).*%s.*", escapedWord)
+		wordsFilter = append(wordsFilter, bson.M{
+			"model": bson.M{"$regex": regexPattern},
 		})
 	}
 
 	filter := bson.M{
-		"type":  strings.ToUpper(productType),
-		"brand": strings.ToUpper(productBrand),
-		"$and":  wordsToFilter,
+		"type": op,
 	}
 
-	cursor, err := pm.collection.Find(context.Background(), filter, options.Find().SetLimit(20))
+	filter["type"] = strings.ToUpper(productType)
+	filter[op] = wordsFilter
+
+	if useBrand && productBrand != "" {
+		filter["brand"] = strings.ToLower(productBrand)
+	}
+
+	return filter
+}
+
+func (pm *PartMatchingService) executeQuery(filter bson.M) ([]models.Part, error) {
+	cursor, err := pm.collection.Find(context.Background(), filter, options.Find().SetLimit(100))
 	if err != nil {
-		log.Printf("Error executing AND regex query: %v", err)
+		log.Printf("Error executing query: %v", err)
 		return nil, err
 	}
 	defer cursor.Close(context.Background())
 
 	var parts []models.Part
 	if err = cursor.All(context.Background(), &parts); err != nil {
-		log.Printf("Error decoding AND regex results: %v", err)
+		log.Printf("Error decoding results: %v", err)
 		return nil, err
-	}
-
-	if len(parts) == 0 {
-		return nil, fmt.Errorf("no results found for type=%s, brand=%s, name=%s", productType, productBrand, productName)
 	}
 
 	return parts, nil
@@ -83,9 +121,6 @@ func (pm *PartMatchingService) FindBestMatch(targetName string, parts []models.P
 		log.Printf("parts é vazio")
 		return nil
 	}
-
-	log.Print(targetName)
-	log.Print(parts)
 
 	normalizedTarget := util.NormalizeString(targetName)
 	bestMatch := &parts[0]
