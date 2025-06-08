@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 
 	"github.com/Luzin7/pcideal-be/internal/core/models"
 	"github.com/Luzin7/pcideal-be/internal/core/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type PartMatchingService struct {
@@ -24,46 +26,53 @@ func NewPartMatchingService(client *mongo.Database) *PartMatchingService {
 	}
 }
 
-func (pm *PartMatchingService) FindParts(productName string, productType string, productBrand string) ([]models.Part, error) {
-	if len(productName) == 0 {
-		return nil, nil
+func (pm *PartMatchingService) FindParts(productName, productType, productBrand string) ([]models.Part, error) {
+	if productName == "" {
+		return nil, fmt.Errorf("productName is empty")
+	}
+	if productType == "" {
+		return nil, fmt.Errorf("productType is empty")
+	}
+	if productBrand == "" {
+		return nil, fmt.Errorf("productBrand is empty")
 	}
 
-	wordsInProductName := strings.Fields(strings.ToLower(productName))
+	lowerProductName := strings.ToLower(productName)
+	escapedProductName := regexp.QuoteMeta(lowerProductName)
+
+	words := strings.Fields(escapedProductName)
 	var wordsToFilter []bson.M
-	for _, w := range wordsInProductName {
+	for _, w := range words {
+		escapedWord := regexp.QuoteMeta(w)
+		regexPattern := fmt.Sprintf("(?i)\\b.*%s.*\\b", escapedWord)
 		wordsToFilter = append(wordsToFilter, bson.M{
 			"model": bson.M{
-				"$regex":   w,
-				"$options": "i",
+				"$regex": regexPattern,
 			},
 		})
 	}
 
 	filter := bson.M{
-		"type": strings.ToUpper(productType),
-		"$and": wordsToFilter,
+		"type":  strings.ToUpper(productType),
+		"brand": strings.ToUpper(productBrand),
+		"$and":  wordsToFilter,
 	}
 
-	log.Printf("productName: %s", productName)
-	log.Printf("filter: %+v", filter)
-
-	cursor, err := pm.collection.Find(context.Background(), filter)
+	cursor, err := pm.collection.Find(context.Background(), filter, options.Find().SetLimit(20))
 	if err != nil {
-		log.Printf("Erro ao executar a query: %v", err)
+		log.Printf("Error executing AND regex query: %v", err)
 		return nil, err
 	}
 	defer cursor.Close(context.Background())
 
 	var parts []models.Part
 	if err = cursor.All(context.Background(), &parts); err != nil {
-		log.Printf("Erro ao decodificar os resultados: %v", err)
+		log.Printf("Error decoding AND regex results: %v", err)
 		return nil, err
 	}
 
-	if len(parts) <= 0 {
-		log.Printf("Nenhum resultado encontrado para %s %s", productType, productName)
-		return nil, fmt.Errorf("nao foi encontrado %s %s", productType, productName)
+	if len(parts) == 0 {
+		return nil, fmt.Errorf("no results found for type=%s, brand=%s, name=%s", productType, productBrand, productName)
 	}
 
 	return parts, nil
