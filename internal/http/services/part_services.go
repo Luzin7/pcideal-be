@@ -2,12 +2,14 @@ package services
 
 import (
 	"log"
+	"strings"
 	"time"
 
 	"github.com/Luzin7/pcideal-be/internal/contracts"
 	"github.com/Luzin7/pcideal-be/internal/core/models"
 	"github.com/Luzin7/pcideal-be/internal/domain/validation"
 	"github.com/Luzin7/pcideal-be/internal/errors"
+	"github.com/Luzin7/pcideal-be/internal/http/presenters"
 )
 
 type PartService struct {
@@ -145,51 +147,139 @@ func (partService *PartService) GetPartByModel(model string) (*models.Part, *err
 	return part, nil
 }
 
-func (partService *PartService) GenerateBuildRecomendations(usageType string, cpuPreference string, gpuPreference string, budget int64) (*models.AIBuildResponse, *errors.ErrService) {
+func (partService *PartService) GenerateBuildRecomendations(usageType string, cpuPreference string, gpuPreference string, budget int64) (*presenters.RecommendedBuildsPresenter, *errors.ErrService) {
 	prompt, err := partService.GoogleAIClient.BuildComputerPrompt(usageType, cpuPreference, gpuPreference, budget)
 	if err != nil {
 		return nil, errors.ErrInternalServerError()
 	}
 
-	recommendedBuilds, err := partService.GoogleAIClient.GenerateBuilds(prompt)
+	aiBuildResponse, err := partService.GoogleAIClient.GenerateBuilds(prompt)
 	if err != nil {
 		return nil, errors.ErrInternalServerError()
 	}
 
-	validBuilds := make([]models.AIBuild, 0)
+	recommendationBuilds := make([]presenters.RecommendationBuild, 0)
 
-	for i := range recommendedBuilds.Builds {
-		cpu := recommendedBuilds.Builds[i].Parts.CPU.Model
-		cpuBrand := recommendedBuilds.Builds[i].Parts.CPU.Brand
-		mobo := recommendedBuilds.Builds[i].Parts.Motherboard.Model
-		moboBrand := recommendedBuilds.Builds[i].Parts.Motherboard.Brand
+	for i := range aiBuildResponse.Builds {
+		cpu := aiBuildResponse.Builds[i].Parts.CPU.Model
+		cpuBrand := aiBuildResponse.Builds[i].Parts.CPU.Brand
+		mobo := aiBuildResponse.Builds[i].Parts.Motherboard.Model
+		moboBrand := aiBuildResponse.Builds[i].Parts.Motherboard.Brand
+		ram := aiBuildResponse.Builds[i].Parts.RAM.Model
+		ramBrand := aiBuildResponse.Builds[i].Parts.RAM.Brand
+		gpu := aiBuildResponse.Builds[i].Parts.GPU.Model
+		gpuBrand := aiBuildResponse.Builds[i].Parts.GPU.Brand
+		primaryStorage := aiBuildResponse.Builds[i].Parts.PrimaryStorage.Model
+		primaryStorageBrand := aiBuildResponse.Builds[i].Parts.PrimaryStorage.Brand
+		psu := aiBuildResponse.Builds[i].Parts.PSU.Model
+		psuBrand := aiBuildResponse.Builds[i].Parts.PSU.Brand
 
 		cpuParts, err := partService.PartMatchingService.FindParts(cpu, "cpu", cpuBrand)
 		if err != nil || len(cpuParts) == 0 {
+			log.Print(err)
 			continue
 		}
 
 		moboParts, err := partService.PartMatchingService.FindParts(mobo, "motherboard", moboBrand)
 		if err != nil || len(moboParts) == 0 {
+			log.Print(err)
+			continue
+		}
+
+		ramParts, err := partService.PartMatchingService.FindParts(ram, "ram", ramBrand)
+		if err != nil || len(ramParts) == 0 {
+			log.Print(err)
+			continue
+		}
+
+		primaryStorageParts, err := partService.PartMatchingService.FindParts(primaryStorage, "ssd", primaryStorageBrand)
+		if err != nil || len(primaryStorageParts) == 0 {
+			log.Print(err)
+			continue
+		}
+
+		psuParts, err := partService.PartMatchingService.FindParts(psu, "psu", psuBrand)
+		if err != nil || len(psuParts) == 0 {
+			log.Print(err)
 			continue
 		}
 
 		cpuFoundByBestMatch := partService.PartMatchingService.FindBestMatch(cpu, cpuParts)
+
+		var gpuFoundByBestMatch *models.Part
+
+		if strings.ToLower(gpuBrand) != "integrada" || strings.ToLower(gpuBrand) != "integrado" || strings.ToLower(gpuBrand) != "nenhuma" {
+			gpuParts, err := partService.PartMatchingService.FindParts(gpu, "gpu", gpuBrand)
+			if err != nil || len(gpuParts) == 0 {
+				log.Print(err)
+				continue
+			}
+			gpuFoundByBestMatch = partService.PartMatchingService.FindBestMatch(gpu, gpuParts)
+		} else {
+			gpuFoundByBestMatch = cpuFoundByBestMatch
+		}
+
 		moboFoundByBestMatch := partService.PartMatchingService.FindBestMatch(mobo, moboParts)
+		if time.Since(moboFoundByBestMatch.UpdatedAt) >= 2*time.Hour {
+			go func(partID string) {
+				if err := partService.UpdatePart(partID); err != nil {
+					log.Printf("async update error for part %s: %v", partID, err)
+				}
+			}(moboFoundByBestMatch.ID.Hex())
+		}
+		ramFoundByBestMatch := partService.PartMatchingService.FindBestMatch(ram, ramParts)
+		if time.Since(ramFoundByBestMatch.UpdatedAt) >= 2*time.Hour {
+			go func(partID string) {
+				if err := partService.UpdatePart(partID); err != nil {
+					log.Printf("async update error for part %s: %v", partID, err)
+				}
+			}(ramFoundByBestMatch.ID.Hex())
+		}
+		primaryStorageFoundByBestMatch := partService.PartMatchingService.FindBestMatch(primaryStorage, primaryStorageParts)
+		if time.Since(primaryStorageFoundByBestMatch.UpdatedAt) >= 2*time.Hour {
+			go func(partID string) {
+				if err := partService.UpdatePart(partID); err != nil {
+					log.Printf("async update error for part %s: %v", partID, err)
+				}
+			}(primaryStorageFoundByBestMatch.ID.Hex())
+		}
+		psuFoundByBestMatch := partService.PartMatchingService.FindBestMatch(psu, psuParts)
+		if time.Since(psuFoundByBestMatch.UpdatedAt) >= 2*time.Hour {
+			go func(partID string) {
+				if err := partService.UpdatePart(partID); err != nil {
+					log.Printf("async update error for part %s: %v", partID, err)
+				}
+			}(psuFoundByBestMatch.ID.Hex())
+		}
 
 		isBuildValid := validation.ValidateCPUAndMotherboard(cpuFoundByBestMatch, moboFoundByBestMatch)
 
+		recommendationBuild := presenters.RecommendationBuild{
+			BuildType:   aiBuildResponse.Builds[i].BuildType,
+			Budget:      aiBuildResponse.Builds[i].Budget,
+			Description: aiBuildResponse.Builds[i].Description,
+			Summary:     aiBuildResponse.Builds[i].Summary,
+			Parts: presenters.BuildParts{
+				CPU:            cpuFoundByBestMatch,
+				Motherboard:    moboFoundByBestMatch,
+				RAM:            ramFoundByBestMatch,
+				GPU:            gpuFoundByBestMatch,
+				PrimaryStorage: primaryStorageFoundByBestMatch,
+				PSU:            psuFoundByBestMatch,
+			},
+		}
+
 		if isBuildValid {
-			validBuilds = append(validBuilds, recommendedBuilds.Builds[i])
+			recommendationBuilds = append(recommendationBuilds, recommendationBuild)
 		}
 
 	}
 
-	if len(validBuilds) == 0 {
+	if len(recommendationBuilds) == 0 {
 		return nil, errors.ErrNotFound("compatible build")
 	}
 
-	return &models.AIBuildResponse{
-		Builds: validBuilds,
+	return &presenters.RecommendedBuildsPresenter{
+		Builds: recommendationBuilds,
 	}, nil
 }
