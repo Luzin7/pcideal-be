@@ -2,11 +2,19 @@ package routes
 
 import (
 	"github.com/Luzin7/pcideal-be/internal/http/controllers"
+	"github.com/Luzin7/pcideal-be/internal/http/middlewares"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 func SetupRouter(partController *controllers.PartController) *gin.Engine {
 	router := gin.Default()
+
+	router.Use(middlewares.SecurityHeadersMiddleware())
+
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:8080", "https://www.pcideal.online"}
+	router.Use(cors.New(config))
 
 	api := router.Group("/api")
 
