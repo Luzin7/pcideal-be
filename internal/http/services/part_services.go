@@ -6,6 +6,7 @@ import (
 
 	"github.com/Luzin7/pcideal-be/internal/contracts"
 	"github.com/Luzin7/pcideal-be/internal/core/models"
+	"github.com/Luzin7/pcideal-be/internal/domain/validation"
 	"github.com/Luzin7/pcideal-be/internal/errors"
 )
 
@@ -144,7 +145,7 @@ func (partService *PartService) GetPartByModel(model string) (*models.Part, *err
 	return part, nil
 }
 
-func (partService *PartService) GenerateBuildRecomendations(usageType string, cpuPreference string, gpuPreference string, budget int64) (map[string]interface{}, *errors.ErrService) {
+func (partService *PartService) GenerateBuildRecomendations(usageType string, cpuPreference string, gpuPreference string, budget int64) (*models.AIBuildResponse, *errors.ErrService) {
 	prompt, err := partService.GoogleAIClient.BuildComputerPrompt(usageType, cpuPreference, gpuPreference, budget)
 	if err != nil {
 		return nil, errors.ErrInternalServerError()
@@ -155,9 +156,40 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 		return nil, errors.ErrInternalServerError()
 	}
 
-	// isBuildValid := validation.ValidateCPUAndMotherboard("AMD Ryzen 5 5600", "Placa-Mãe ASUS Prime B450M-GAMING/BR")
+	validBuilds := make([]models.AIBuild, 0)
 
-	// log.Print(isBuildValid)
+	for i := range recommendedBuilds.Builds {
+		cpu := recommendedBuilds.Builds[i].Parts.CPU.Model
+		cpuBrand := recommendedBuilds.Builds[i].Parts.CPU.Brand
+		mobo := recommendedBuilds.Builds[i].Parts.Motherboard.Model
+		moboBrand := recommendedBuilds.Builds[i].Parts.Motherboard.Brand
 
-	return recommendedBuilds, nil
+		cpuParts, err := partService.PartMatchingService.FindParts(cpu, "cpu", cpuBrand)
+		if err != nil || len(cpuParts) == 0 {
+			continue
+		}
+
+		moboParts, err := partService.PartMatchingService.FindParts(mobo, "motherboard", moboBrand)
+		if err != nil || len(moboParts) == 0 {
+			continue
+		}
+
+		cpuFoundByBestMatch := partService.PartMatchingService.FindBestMatch(cpu, cpuParts)
+		moboFoundByBestMatch := partService.PartMatchingService.FindBestMatch(mobo, moboParts)
+
+		isBuildValid := validation.ValidateCPUAndMotherboard(cpuFoundByBestMatch, moboFoundByBestMatch)
+
+		if isBuildValid {
+			validBuilds = append(validBuilds, recommendedBuilds.Builds[i])
+		}
+
+	}
+
+	if len(validBuilds) == 0 {
+		return nil, errors.ErrNotFound("compatible build")
+	}
+
+	return &models.AIBuildResponse{
+		Builds: validBuilds,
+	}, nil
 }
