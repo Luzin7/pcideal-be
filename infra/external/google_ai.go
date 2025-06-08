@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/Luzin7/pcideal-be/internal/core/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/genai"
@@ -141,7 +142,7 @@ The client wants a PC that will be used for %s:
 	return fullPrompt, nil
 }
 
-func CleanAndParseGeminiResponse(raw string) (map[string]interface{}, error) {
+func CleanAndParseGeminiResponse(raw string) (*models.AIBuildResponse, error) {
 	re := regexp.MustCompile("(?s)```json\\n(.*?)\\n```")
 	match := re.FindStringSubmatch(raw)
 
@@ -156,7 +157,7 @@ func CleanAndParseGeminiResponse(raw string) (map[string]interface{}, error) {
 	cleaned = strings.ReplaceAll(cleaned, "\\\"", "\"")
 	cleaned = strings.ReplaceAll(cleaned, "\\\\", "\\")
 
-	var result map[string]interface{}
+	var result *models.AIBuildResponse
 	err := json.Unmarshal([]byte(cleaned), &result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal cleaned response: %w", err)
@@ -165,7 +166,7 @@ func CleanAndParseGeminiResponse(raw string) (map[string]interface{}, error) {
 	return result, nil
 }
 
-func (c *GoogleAIClient) GenerateBuilds(prompt string) (map[string]interface{}, error) {
+func (c *GoogleAIClient) GenerateBuilds(prompt string) (*models.AIBuildResponse, error) {
 	ctx := context.Background()
 
 	rawResponse, err := c.Client.Models.GenerateContent(
