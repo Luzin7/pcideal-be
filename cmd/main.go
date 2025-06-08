@@ -7,7 +7,7 @@ import (
 	"github.com/Luzin7/pcideal-be/infra/database"
 	"github.com/Luzin7/pcideal-be/infra/external"
 	"github.com/Luzin7/pcideal-be/infra/repositories"
-	"github.com/Luzin7/pcideal-be/internal/core/validation"
+	"github.com/Luzin7/pcideal-be/internal/domain/matching"
 	"github.com/Luzin7/pcideal-be/internal/http/controllers"
 	"github.com/Luzin7/pcideal-be/internal/http/routes"
 	"github.com/Luzin7/pcideal-be/internal/http/services"
@@ -36,8 +36,8 @@ func main() {
 
 	partRepository := repositories.NewPartRepository(db)
 	scraperClient := external.NewScraperHTTPClient(os.Getenv("SCRAPER_API_URL"))
-	validateBuild := validation.NewValidateBuild(db)
-	partService := services.NewPartService(partRepository, scraperClient, googleAiClient, validateBuild)
+	partMatchingService := matching.NewPartMatchingService(db)
+	partService := services.NewPartService(partRepository, scraperClient, googleAiClient, partMatchingService)
 	partController := controllers.NewPartController(partService)
 
 	router := routes.SetupRouter(partController)
