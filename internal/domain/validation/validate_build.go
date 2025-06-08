@@ -72,7 +72,7 @@ func validateCompatibility(validationType string, key string, value string) bool
 	return false
 }
 
-func ValidateCPUAndMotherboard(cpu models.Part, mobo models.Part) bool {
+func ValidateCPUAndMotherboard(cpu *models.Part, mobo *models.Part) bool {
 
 	if cpu.Specs.Socket == "" || mobo.Specs.Socket == "" {
 		fmt.Println("Warning: validation is partial")
