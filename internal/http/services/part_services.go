@@ -28,6 +28,16 @@ func NewPartService(partRepository contracts.PartContract, scrapperClient contra
 	}
 }
 
+func (ps *PartService) updatePartIfNeeded(part *models.Part) {
+	if part != nil && time.Since(part.UpdatedAt) >= 2*time.Hour {
+		go func(partID string) {
+			if err := ps.UpdatePart(partID); err != nil {
+				log.Printf("async update error for part %s: %v", partID, err)
+			}
+		}(part.ID.Hex())
+	}
+}
+
 func (partService *PartService) CreatePart(part *models.Part) *errors.ErrService {
 	partAlreadyExist, err := partService.PartRepository.GetPartByModel(part.Model)
 
@@ -114,13 +124,7 @@ func (partService *PartService) GetPartByID(id string) (*models.Part, *errors.Er
 		return nil, errors.ErrNotFound("part")
 	}
 
-	if time.Since(part.UpdatedAt) >= 2*time.Hour {
-		go func(partID string) {
-			if err := partService.UpdatePart(partID); err != nil {
-				log.Printf("async update error for part %s: %v", partID, err)
-			}
-		}(part.ID.Hex())
-	}
+	partService.updatePartIfNeeded(part)
 
 	return part, nil
 }
@@ -136,13 +140,7 @@ func (partService *PartService) GetPartByModel(model string) (*models.Part, *err
 		return nil, errors.ErrNotFound("part")
 	}
 
-	if time.Since(part.UpdatedAt) >= 2*time.Hour {
-		go func(partID string) {
-			if err := partService.UpdatePart(partID); err != nil {
-				log.Printf("async update error for part %s: %v", partID, err)
-			}
-		}(part.ID.Hex())
-	}
+	partService.updatePartIfNeeded(part)
 
 	return part, nil
 }
@@ -186,6 +184,26 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 			continue
 		}
 
+		cpuFoundByBestMatch := partService.PartMatchingService.FindBestMatch(cpu, cpuParts)
+		if cpuFoundByBestMatch == nil {
+			log.Print(err)
+			continue
+		}
+		partService.updatePartIfNeeded(cpuFoundByBestMatch)
+
+		moboFoundByBestMatch := partService.PartMatchingService.FindBestMatch(mobo, moboParts)
+		if moboFoundByBestMatch == nil {
+			log.Print(err)
+			continue
+		}
+		partService.updatePartIfNeeded(moboFoundByBestMatch)
+
+		isBuildValid := validation.ValidateCPUAndMotherboard(cpuFoundByBestMatch, moboFoundByBestMatch)
+
+		if !isBuildValid {
+			continue
+		}
+
 		ramParts, err := partService.PartMatchingService.FindParts(ram, "ram", ramBrand)
 		if err != nil || len(ramParts) == 0 {
 			log.Print(err)
@@ -204,8 +222,6 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 			continue
 		}
 
-		cpuFoundByBestMatch := partService.PartMatchingService.FindBestMatch(cpu, cpuParts)
-
 		var gpuFoundByBestMatch *models.Part
 
 		if strings.ToLower(gpuBrand) != "integrada" || strings.ToLower(gpuBrand) != "integrado" || strings.ToLower(gpuBrand) != "nenhuma" {
@@ -215,44 +231,35 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 				continue
 			}
 			gpuFoundByBestMatch = partService.PartMatchingService.FindBestMatch(gpu, gpuParts)
+			if gpuFoundByBestMatch == nil {
+				log.Print(err)
+				continue
+			}
+			partService.updatePartIfNeeded(gpuFoundByBestMatch)
 		} else {
 			gpuFoundByBestMatch = cpuFoundByBestMatch
 		}
 
-		moboFoundByBestMatch := partService.PartMatchingService.FindBestMatch(mobo, moboParts)
-		if time.Since(moboFoundByBestMatch.UpdatedAt) >= 2*time.Hour {
-			go func(partID string) {
-				if err := partService.UpdatePart(partID); err != nil {
-					log.Printf("async update error for part %s: %v", partID, err)
-				}
-			}(moboFoundByBestMatch.ID.Hex())
-		}
 		ramFoundByBestMatch := partService.PartMatchingService.FindBestMatch(ram, ramParts)
-		if time.Since(ramFoundByBestMatch.UpdatedAt) >= 2*time.Hour {
-			go func(partID string) {
-				if err := partService.UpdatePart(partID); err != nil {
-					log.Printf("async update error for part %s: %v", partID, err)
-				}
-			}(ramFoundByBestMatch.ID.Hex())
+		if ramFoundByBestMatch == nil {
+			log.Print(err)
+			continue
 		}
-		primaryStorageFoundByBestMatch := partService.PartMatchingService.FindBestMatch(primaryStorage, primaryStorageParts)
-		if time.Since(primaryStorageFoundByBestMatch.UpdatedAt) >= 2*time.Hour {
-			go func(partID string) {
-				if err := partService.UpdatePart(partID); err != nil {
-					log.Printf("async update error for part %s: %v", partID, err)
-				}
-			}(primaryStorageFoundByBestMatch.ID.Hex())
-		}
-		psuFoundByBestMatch := partService.PartMatchingService.FindBestMatch(psu, psuParts)
-		if time.Since(psuFoundByBestMatch.UpdatedAt) >= 2*time.Hour {
-			go func(partID string) {
-				if err := partService.UpdatePart(partID); err != nil {
-					log.Printf("async update error for part %s: %v", partID, err)
-				}
-			}(psuFoundByBestMatch.ID.Hex())
-		}
+		partService.updatePartIfNeeded(ramFoundByBestMatch)
 
-		isBuildValid := validation.ValidateCPUAndMotherboard(cpuFoundByBestMatch, moboFoundByBestMatch)
+		primaryStorageFoundByBestMatch := partService.PartMatchingService.FindBestMatch(primaryStorage, primaryStorageParts)
+		if primaryStorageFoundByBestMatch == nil {
+			log.Print(err)
+			continue
+		}
+		partService.updatePartIfNeeded(primaryStorageFoundByBestMatch)
+
+		psuFoundByBestMatch := partService.PartMatchingService.FindBestMatch(psu, psuParts)
+		if psuFoundByBestMatch == nil {
+			log.Print(err)
+			continue
+		}
+		partService.updatePartIfNeeded(psuFoundByBestMatch)
 
 		recommendationBuild := presenters.RecommendationBuild{
 			BuildType:   aiBuildResponse.Builds[i].BuildType,
@@ -269,9 +276,7 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 			},
 		}
 
-		if isBuildValid {
-			recommendationBuilds = append(recommendationBuilds, recommendationBuild)
-		}
+		recommendationBuilds = append(recommendationBuilds, recommendationBuild)
 
 	}
 
