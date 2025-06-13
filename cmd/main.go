@@ -28,7 +28,7 @@ func main() {
 	db, err := database.MongoConnection(connectionString, databaseName)
 
 	if err != nil {
-		log.Fatal("Erro ao conectar ao banco de dados")
+		log.Fatalf("Erro ao conectar ao banco de dados: %s", err)
 	}
 
 	googleAiClient, err := external.NewGoogleAIClient(os.Getenv("GOOGLE_AI_API_KEY"), db)
