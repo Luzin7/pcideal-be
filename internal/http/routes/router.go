@@ -9,6 +9,7 @@ import (
 
 func SetupRouter(partController *controllers.PartController) *gin.Engine {
 	router := gin.Default()
+	router.SetTrustedProxies(nil)
 
 	router.Use(middlewares.SecurityHeadersMiddleware())
 
