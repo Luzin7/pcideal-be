@@ -261,9 +261,20 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 		}
 		partService.updatePartIfNeeded(psuFoundByBestMatch)
 
+		buildValue := cpuFoundByBestMatch.PriceCents +
+			moboFoundByBestMatch.PriceCents +
+			ramFoundByBestMatch.PriceCents +
+			primaryStorageFoundByBestMatch.PriceCents +
+			psuFoundByBestMatch.PriceCents
+
+		if gpuFoundByBestMatch != cpuFoundByBestMatch {
+			buildValue += gpuFoundByBestMatch.PriceCents
+		}
+
 		recommendationBuild := presenters.RecommendationBuild{
 			BuildType:   aiBuildResponse.Builds[i].BuildType,
 			Budget:      aiBuildResponse.Builds[i].Budget,
+			BuildValue:  buildValue,
 			Description: aiBuildResponse.Builds[i].Description,
 			Summary:     aiBuildResponse.Builds[i].Summary,
 			Parts: presenters.BuildParts{
