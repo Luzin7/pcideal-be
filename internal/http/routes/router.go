@@ -14,7 +14,7 @@ func SetupRouter(partController *controllers.PartController) *gin.Engine {
 	router.Use(middlewares.SecurityHeadersMiddleware())
 
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:8080", "https://www.pcideal.online"}
+	config.AllowOrigins = []string{"http://localhost:3000", "https://www.pcideal.online"}
 	router.Use(cors.New(config))
 
 	api := router.Group("/api")
