@@ -44,12 +44,14 @@ func (pm *PartMatchingService) FindParts(productName, productType, productBrand 
 	}
 
 	if len(parts) > 0 {
+		log.Printf("found %s using first type search", productName)
 		return parts, nil
 	}
 
 	orFilter := pm.buildFilter(productType, productBrand, words, false, true)
 	parts, err = pm.executeQuery(orFilter)
 	if err != nil {
+		log.Printf("found %s using second type search", productName)
 		return nil, err
 	}
 
@@ -64,6 +66,7 @@ func (pm *PartMatchingService) FindParts(productName, productType, productBrand 
 	}
 
 	if len(parts) > 0 {
+		log.Printf("found %s using third type seach", productName)
 		return parts, nil
 	}
 
@@ -78,6 +81,9 @@ func (pm *PartMatchingService) buildFilter(productType, productBrand string, wor
 	}
 
 	for _, w := range words {
+		if len(w) <= 2 {
+			continue
+		}
 		escapedWord := regexp.QuoteMeta(w)
 		regexPattern := fmt.Sprintf("(?i).*%s.*", escapedWord)
 		wordsFilter = append(wordsFilter, bson.M{
@@ -100,7 +106,7 @@ func (pm *PartMatchingService) buildFilter(productType, productBrand string, wor
 }
 
 func (pm *PartMatchingService) executeQuery(filter bson.M) ([]models.Part, error) {
-	cursor, err := pm.collection.Find(context.Background(), filter, options.Find().SetLimit(100))
+	cursor, err := pm.collection.Find(context.Background(), filter, options.Find().SetLimit(200))
 	if err != nil {
 		log.Printf("Error executing query: %v", err)
 		return nil, err
@@ -136,12 +142,7 @@ func (pm *PartMatchingService) FindBestMatch(targetName string, parts []models.P
 		}
 	}
 
-	// threshold := len(normalizedTarget) / 2
-	// if bestDistance > threshold {
-	// 	return nil
-	// }
-
-	log.Printf("melhor distancia %d", bestDistance)
+	log.Printf("melhor distancia para %s foi de %d com a string %s", targetName, bestDistance, bestMatch.Model)
 
 	return bestMatch
 }
