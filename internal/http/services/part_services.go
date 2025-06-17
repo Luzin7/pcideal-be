@@ -96,7 +96,8 @@ func (partService *PartService) UpdatePart(partId string) *errors.ErrService {
 	scrapedPart, err := partService.ScraperClient.ScrapeProduct(part.URL)
 
 	if err != nil {
-		return errors.ErrInternalServerError()
+		log.Printf("Error scraping product for part %s: %v", partId, err)
+		return errors.ErrScrapingFailed(partId)
 	}
 
 	part.Brand = scrapedPart.Brand
