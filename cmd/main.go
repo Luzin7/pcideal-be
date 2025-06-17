@@ -37,7 +37,7 @@ func main() {
 	}
 
 	partRepository := repositories.NewPartRepository(db)
-	scraperClient := external.NewScraperHTTPClient(os.Getenv("SCRAPER_API_URL"))
+	scraperClient := external.NewScraperHTTPClient(os.Getenv("SCRAPER_API_URL"), os.Getenv("SCRAPER_API_KEY"))
 	partMatchingService := matching.NewPartMatchingService(db)
 	partService := services.NewPartService(partRepository, scraperClient, googleAiClient, partMatchingService)
 	partController := controllers.NewPartController(partService)
