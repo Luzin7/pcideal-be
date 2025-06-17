@@ -99,6 +99,8 @@ func (partService *PartService) UpdatePart(partId string) *errors.ErrService {
 		return errors.ErrInternalServerError()
 	}
 
+	part.Brand = scrapedPart.Brand
+	part.Model = scrapedPart.Model
 	part.Specs = scrapedPart.Specs
 	part.PriceCents = scrapedPart.PriceCents
 	part.UpdatedAt = time.Now()
@@ -224,7 +226,7 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 
 		var gpuFoundByBestMatch *models.Part
 
-		if strings.ToLower(gpuBrand) != "integrada" || strings.ToLower(gpuBrand) != "integrado" || strings.ToLower(gpuBrand) != "nenhuma" {
+		if strings.ToLower(gpu) != "integrado" {
 			gpuParts, err := partService.PartMatchingService.FindParts(gpu, "gpu", gpuBrand)
 			if err != nil || len(gpuParts) == 0 {
 				log.Print(err)
@@ -237,7 +239,10 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 			}
 			partService.updatePartIfNeeded(gpuFoundByBestMatch)
 		} else {
-			gpuFoundByBestMatch = cpuFoundByBestMatch
+			gpuFoundByBestMatch = &models.Part{
+				Brand: gpuBrand,
+				Model: "Integrada",
+			}
 		}
 
 		ramFoundByBestMatch := partService.PartMatchingService.FindBestMatch(ram, ramParts)
@@ -267,7 +272,7 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 			primaryStorageFoundByBestMatch.PriceCents +
 			psuFoundByBestMatch.PriceCents
 
-		if gpuFoundByBestMatch != cpuFoundByBestMatch {
+		if gpuFoundByBestMatch.Model != "Integrado" {
 			buildValue += gpuFoundByBestMatch.PriceCents
 		}
 
