@@ -11,10 +11,11 @@ func SetupRouter(partController *controllers.PartController) *gin.Engine {
 	router := gin.Default()
 	router.SetTrustedProxies(nil)
 
+	router.Use(middlewares.IPLoggingMiddleware())
 	router.Use(middlewares.SecurityHeadersMiddleware())
 
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:3000", "https://www.pcideal.online"}
+	config.AllowOrigins = []string{"http://localhost:3000", "https://www.pcideal.online", "https://pcideal.online"}
 	router.Use(cors.New(config))
 
 	api := router.Group("/api")
