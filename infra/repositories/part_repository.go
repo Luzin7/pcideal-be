@@ -37,8 +37,6 @@ func (partRepository *PartRepository) CreatePart(part *models.Part) error {
 func (partRepository *PartRepository) UpdatePart(partId string, part *models.Part) error {
 	ctx := context.TODO()
 	log.Printf("Updating part with ID: %s", partId)
-	log.Printf("Part details: %+v", part)
-
 	objID, err := primitive.ObjectIDFromHex(partId)
 
 	if err != nil {
