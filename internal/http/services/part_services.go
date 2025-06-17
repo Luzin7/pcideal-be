@@ -242,6 +242,7 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 			gpuFoundByBestMatch = &models.Part{
 				Brand: gpuBrand,
 				Model: "Integrada",
+				URL:   cpuFoundByBestMatch.URL,
 			}
 		}
 
