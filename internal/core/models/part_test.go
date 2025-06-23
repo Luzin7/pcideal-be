@@ -13,7 +13,7 @@ func TestNewPart(t *testing.T) {
 		ClockSpeed: 3.6,
 	}
 
-	part := NewPart("CPU", "AMD", "Ryzen 5 5600X", specs, 120000, "https://kabum.com.br/ryzen5600x", "Kabum")
+	part := NewPart("CPU", "AMD", "Ryzen 5 5600X", specs, 120000, "https://kabum.com.br/ryzen5600x", "https://affiliatelink.com", "Kabum")
 
 	if part == nil {
 		t.Fatal("expected part to not be nil")
@@ -32,6 +32,9 @@ func TestNewPart(t *testing.T) {
 		t.Errorf("expected PriceCents to be 120000, got %d", part.PriceCents)
 	}
 	if part.URL != "https://kabum.com.br/ryzen5600x" {
+		t.Errorf("expected URL to be correct, got %s", part.URL)
+	}
+	if part.URL != "https://affiliatelink.com" {
 		t.Errorf("expected URL to be correct, got %s", part.URL)
 	}
 	if part.Store != "Kabum" {
