@@ -50,7 +50,7 @@ type Part struct {
 	// Benchmark   benchmark `bson:"benchmark" json:"benchmark"`
 	PriceCents    int64     `bson:"price_cents" json:"price_cents"`
 	URL           string    `bson:"url" json:"url"`
-	AffiliatedURL string    `bson:"url" json:"affiliate_url"`
+	AffiliatedURL string    `bson:"affiliate_url" json:"affiliate_url"`
 	Store         string    `bson:"store" json:"store"` // Kabum, Amazon, etc
 	UpdatedAt     time.Time `bson:"updated_at" json:"updated_at"`
 }
