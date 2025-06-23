@@ -56,6 +56,7 @@ func (partService *PartService) CreatePart(part *models.Part) *errors.ErrService
 		part.Specs,
 		part.PriceCents,
 		part.URL,
+		part.AffiliatedURL,
 		part.Store,
 	)
 
