@@ -34,8 +34,8 @@ func TestNewPart(t *testing.T) {
 	if part.URL != "https://kabum.com.br/ryzen5600x" {
 		t.Errorf("expected URL to be correct, got %s", part.URL)
 	}
-	if part.URL != "https://affiliatelink.com" {
-		t.Errorf("expected URL to be correct, got %s", part.URL)
+	if part.AffiliatedURL != "https://affiliatelink.com" {
+		t.Errorf("expected AffiliatedURL to be correct, got %s", part.URL)
 	}
 	if part.Store != "Kabum" {
 		t.Errorf("expected Store to be Kabum, got %s", part.Store)
