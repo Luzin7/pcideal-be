@@ -79,7 +79,7 @@ func ErrScrapingProductNotFound(partId string) *ErrService {
 func ErrScrapingNetworkError(partId string) *ErrService {
 	return New(
 		fmt.Sprintf("Network error while scraping part %s", partId),
-		502, // Bad Gateway
+		502,
 	)
 }
 
@@ -88,4 +88,32 @@ func ErrInternalServerError() *ErrService {
 		"Internal server error",
 		500,
 	)
+}
+
+func ErrMissingIP() *ErrService {
+	return New("User IP not provided", 400)
+}
+
+func ErrMissingGoal() *ErrService {
+	return New("Required parameter 'goal' not provided", 400)
+}
+
+func ErrMissingBudget() *ErrService {
+	return New("Required parameter 'budget' not provided", 400)
+}
+
+func ErrInvalidSince() *ErrService {
+	return New("'since' cannot be a future date", 400)
+}
+
+func ErrInvalidBudget() *ErrService {
+	return New("Budget must be greater than zero", 400)
+}
+
+func ErrBuildAttemptLimit() *ErrService {
+	return New("Build attempt limit reached for this IP", 429)
+}
+
+func ErrBuildAttemptNotFound() *ErrService {
+	return New("BuildAttempt not found", 404)
 }
