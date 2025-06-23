@@ -37,7 +37,7 @@ func IPLoggingMiddleware() gin.HandlerFunc {
 
 		c.Next()
 
-		log.Printf("%s - %s %s - %d - %v",
+		log.Printf("[IP] %s - %s %s - %d - %v",
 			clientIP,
 			c.Request.Method,
 			c.Request.URL.Path,
