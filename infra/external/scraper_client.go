@@ -1,6 +1,7 @@
 package external
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -81,4 +82,49 @@ func (s *ScraperHTTPClient) ScrapeProduct(productLink string) (*models.Part, err
 
 	log.Printf("Scraped part: %+v", part)
 	return &part, nil
+}
+
+func (s *ScraperHTTPClient) UpdateProducts(urls []string) ([]*models.Part, error) {
+	body := map[string][]string{
+		"productsLinksToBeUpgraded": urls,
+	}
+
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/update-products", s.BaseURL), bytes.NewReader(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-api-key", s.ApiKey)
+
+	resp, err := s.Client.Do(req)
+	if err != nil {
+		log.Printf("Error making request: %v", err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		log.Printf("Erro: status %d, body: %s", resp.StatusCode, string(bodyBytes))
+		return nil, fmt.Errorf("erro ao chamar scraping API: %s", resp.Status)
+	}
+
+	var response struct {
+		UpdatedCount int            `json:"updatedCount"`
+		Parts        []*models.Part `json:"parts"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		log.Printf("Error decoding response: %v", err)
+		return nil, err
+	}
+
+	log.Printf("Scraped parts count: %d", response.UpdatedCount)
+	return response.Parts, nil
 }
