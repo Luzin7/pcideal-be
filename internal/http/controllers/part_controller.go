@@ -3,17 +3,22 @@ package controllers
 import (
 	"log"
 	"net/http"
+	"time"
 
+	"github.com/Luzin7/pcideal-be/internal/core/models"
+	"github.com/Luzin7/pcideal-be/internal/errors"
+	"github.com/Luzin7/pcideal-be/internal/http/middlewares"
 	"github.com/Luzin7/pcideal-be/internal/http/services"
 	"github.com/gin-gonic/gin"
 )
 
 type PartController struct {
-	PartService *services.PartService
+	PartService         *services.PartService
+	BuildAttemptService *services.BuildAttemptService
 }
 
-func NewPartController(partService *services.PartService) *PartController {
-	return &PartController{PartService: partService}
+func NewPartController(partService *services.PartService, buildAttemptService *services.BuildAttemptService) *PartController {
+	return &PartController{PartService: partService, BuildAttemptService: buildAttemptService}
 }
 
 func (pc *PartController) GetAllParts(c *gin.Context) {
@@ -58,6 +63,8 @@ func (pc *PartController) GetPartByModel(c *gin.Context) {
 }
 
 func (pc *PartController) GetBuildRecomendations(c *gin.Context) {
+	clientIP := middlewares.GetClientIP(c)
+
 	var req struct {
 		UsageType     string `json:"usage_type"`
 		CpuPreference string `json:"cpu_preference"`
@@ -70,11 +77,34 @@ func (pc *PartController) GetBuildRecomendations(c *gin.Context) {
 		return
 	}
 
+	since := time.Now().Add(-1 * time.Hour)
+	count, err := pc.BuildAttemptService.CountBuildAttemptsByIP(clientIP, since)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 500, "message": "Internal server error"})
+		return
+	}
+
+	const maxAttempts = 4
+	if count >= maxAttempts {
+		c.JSON(http.StatusTooManyRequests, gin.H{"code": errors.ErrBuildAttemptLimit().StatusCode, "message": errors.ErrBuildAttemptLimit().Message})
+		return
+	}
+
+	buildAttempt := &models.BuildAttempt{
+		IP:      clientIP,
+		Goal:    req.UsageType,
+		Budget:  int64(req.Budget),
+		CPUPref: req.CpuPreference,
+		GPUPref: req.GpuPreference,
+	}
+	_ = pc.BuildAttemptService.CreateBuildAttempt(buildAttempt)
+
 	part, err := pc.PartService.GenerateBuildRecomendations(req.UsageType, req.CpuPreference, req.GpuPreference, req.Budget)
 	if err != nil {
 		c.JSON(err.StatusCode, gin.H{"code": err.StatusCode, "message": err.Message})
 		return
 	}
+
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, gin.H{"data": part})
 }
