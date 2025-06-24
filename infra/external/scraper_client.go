@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Luzin7/pcideal-be/infra/dto"
 	"github.com/Luzin7/pcideal-be/internal/core/models"
 )
 
@@ -84,12 +85,8 @@ func (s *ScraperHTTPClient) ScrapeProduct(productLink string) (*models.Part, err
 	return &part, nil
 }
 
-func (s *ScraperHTTPClient) UpdateProducts(urls []string) ([]*models.Part, error) {
-	body := map[string][]string{
-		"productsLinksToBeUpgraded": urls,
-	}
-
-	jsonBody, err := json.Marshal(body)
+func (s *ScraperHTTPClient) UpdateProducts(links []*dto.ProductLinkToUpdate) ([]*dto.PartWithID, error) {
+	jsonBody, err := json.Marshal(links)
 	if err != nil {
 		return nil, err
 	}
@@ -115,16 +112,11 @@ func (s *ScraperHTTPClient) UpdateProducts(urls []string) ([]*models.Part, error
 		return nil, fmt.Errorf("erro ao chamar scraping API: %s", resp.Status)
 	}
 
-	var response struct {
-		UpdatedCount int            `json:"updatedCount"`
-		Parts        []*models.Part `json:"parts"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+	var partsWithID []*dto.PartWithID
+	if err := json.NewDecoder(resp.Body).Decode(&partsWithID); err != nil {
 		log.Printf("Error decoding response: %v", err)
 		return nil, err
 	}
 
-	log.Printf("Scraped parts count: %d", response.UpdatedCount)
-	return response.Parts, nil
+	return partsWithID, nil
 }
