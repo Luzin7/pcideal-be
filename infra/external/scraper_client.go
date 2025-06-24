@@ -24,7 +24,7 @@ func NewScraperHTTPClient(baseURL string, apiKey string) *ScraperHTTPClient {
 		BaseURL: baseURL,
 		ApiKey:  apiKey,
 		Client: &http.Client{
-			Timeout: 60 * time.Second,
+			Timeout: 2 * time.Minute,
 		},
 	}
 }
