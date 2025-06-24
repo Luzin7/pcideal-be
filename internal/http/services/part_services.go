@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Luzin7/pcideal-be/infra/dto"
 	"github.com/Luzin7/pcideal-be/internal/contracts"
 	"github.com/Luzin7/pcideal-be/internal/core/models"
 	"github.com/Luzin7/pcideal-be/internal/domain/validation"
@@ -81,7 +82,7 @@ func (partService *PartService) GetAllParts() ([]*models.Part, *errors.ErrServic
 	return parts, nil
 }
 
-func (partService *PartService) UpdateParts(urls []string) *errors.ErrService {
+func (partService *PartService) UpdateParts(urls []*dto.ProductLinkToUpdate) *errors.ErrService {
 	if len(urls) <= 0 {
 		return errors.New("urls cannot be empty", 400)
 	}
@@ -94,9 +95,9 @@ func (partService *PartService) UpdateParts(urls []string) *errors.ErrService {
 	}
 
 	for _, part := range updatedParts {
-		part.UpdatedAt = time.Now()
+		part.Part.UpdatedAt = time.Now()
 
-		err = partService.PartRepository.UpdatePart(part.ID.Hex(), part)
+		err = partService.PartRepository.UpdatePart(part.ID, part.Part)
 		if err != nil {
 			log.Printf("Error updating part: %v", err)
 			return errors.ErrInternalServerError()
@@ -187,7 +188,7 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 		return nil, errors.ErrInternalServerError()
 	}
 
-	var linksToUpdate []string
+	var linksToUpdate []*dto.ProductLinkToUpdate
 	recommendationBuilds := make([]presenters.RecommendationBuild, 0)
 
 	for i := range aiBuildResponse.Builds {
@@ -222,7 +223,11 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 			continue
 		}
 		if partService.needToUpdate(cpuFoundByBestMatch) {
-			linksToUpdate = append(linksToUpdate, cpuFoundByBestMatch.URL)
+			part := &dto.ProductLinkToUpdate{
+				ID:  cpuFoundByBestMatch.ID.Hex(),
+				URL: cpuFoundByBestMatch.URL,
+			}
+			linksToUpdate = append(linksToUpdate, part)
 		}
 
 		moboFoundByBestMatch := partService.PartMatchingService.FindBestMatch(mobo, moboParts)
@@ -231,7 +236,11 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 			continue
 		}
 		if partService.needToUpdate(moboFoundByBestMatch) {
-			linksToUpdate = append(linksToUpdate, moboFoundByBestMatch.URL)
+			part := &dto.ProductLinkToUpdate{
+				ID:  moboFoundByBestMatch.ID.Hex(),
+				URL: moboFoundByBestMatch.URL,
+			}
+			linksToUpdate = append(linksToUpdate, part)
 		}
 
 		isBuildValid := validation.ValidateCPUAndMotherboard(cpuFoundByBestMatch, moboFoundByBestMatch)
@@ -272,7 +281,11 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 				continue
 			}
 			if partService.needToUpdate(gpuFoundByBestMatch) {
-				linksToUpdate = append(linksToUpdate, gpuFoundByBestMatch.URL)
+				part := &dto.ProductLinkToUpdate{
+					ID:  gpuFoundByBestMatch.ID.Hex(),
+					URL: gpuFoundByBestMatch.URL,
+				}
+				linksToUpdate = append(linksToUpdate, part)
 			}
 		} else {
 			gpuFoundByBestMatch = &models.Part{
@@ -289,7 +302,11 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 		}
 
 		if partService.needToUpdate(ramFoundByBestMatch) {
-			linksToUpdate = append(linksToUpdate, ramFoundByBestMatch.URL)
+			part := &dto.ProductLinkToUpdate{
+				ID:  ramFoundByBestMatch.ID.Hex(),
+				URL: ramFoundByBestMatch.URL,
+			}
+			linksToUpdate = append(linksToUpdate, part)
 		}
 
 		primaryStorageFoundByBestMatch := partService.PartMatchingService.FindBestMatch(primaryStorage, primaryStorageParts)
@@ -299,7 +316,11 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 		}
 
 		if partService.needToUpdate(primaryStorageFoundByBestMatch) {
-			linksToUpdate = append(linksToUpdate, primaryStorageFoundByBestMatch.URL)
+			part := &dto.ProductLinkToUpdate{
+				ID:  primaryStorageFoundByBestMatch.ID.Hex(),
+				URL: primaryStorageFoundByBestMatch.URL,
+			}
+			linksToUpdate = append(linksToUpdate, part)
 		}
 
 		psuFoundByBestMatch := partService.PartMatchingService.FindBestMatch(psu, psuParts)
@@ -309,7 +330,11 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 		}
 
 		if partService.needToUpdate(psuFoundByBestMatch) {
-			linksToUpdate = append(linksToUpdate, psuFoundByBestMatch.URL)
+			part := &dto.ProductLinkToUpdate{
+				ID:  psuFoundByBestMatch.ID.Hex(),
+				URL: psuFoundByBestMatch.URL,
+			}
+			linksToUpdate = append(linksToUpdate, part)
 		}
 
 		buildValue := cpuFoundByBestMatch.PriceCents +
@@ -343,9 +368,9 @@ func (partService *PartService) GenerateBuildRecomendations(usageType string, cp
 	}
 
 	if len(linksToUpdate) > 0 {
-		linksCopy := make([]string, len(linksToUpdate))
+		linksCopy := make([]*dto.ProductLinkToUpdate, len(linksToUpdate))
 		copy(linksCopy, linksToUpdate)
-		go func(links []string) {
+		go func(links []*dto.ProductLinkToUpdate) {
 			log.Print("Inciando atualizações em bg...")
 			partService.UpdateParts(links)
 		}(linksCopy)
