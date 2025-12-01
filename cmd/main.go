@@ -23,6 +23,11 @@ func main() {
 		}
 	}
 
+	port := os.Getenv("PORT")
+    if port == "" {
+        port = "8080"
+    }
+
 	connectionString := os.Getenv("DATABASE_URL")
 	databaseName := os.Getenv("PCIDEAL_DB_NAME")
 	db, err := database.MongoConnection(connectionString, databaseName)
@@ -46,7 +51,8 @@ func main() {
 
 	router := routes.SetupRouter(partController)
 
-	if err := router.Run(":8080"); err != nil {
-		log.Fatal("Erro ao subir o servidor:", err)
-	}
+	log.Printf("Servidor iniciando na porta %s...", port)
+    if err := router.Run(":" + port); err != nil {
+        log.Fatal("Erro ao subir o servidor:", err)
+    }
 }
