@@ -6,7 +6,7 @@ import (
 )
 
 type ScraperClient interface {
-	ScrapeAllCategories() ([]*models.Part, error)
-	ScrapeProduct(productLink string) (*models.Part, error)
-	UpdateProducts(urls []*dto.ProductLinkToUpdate) ([]*dto.PartWithID, error)
+	ScrapeAllCategories(storeName string) ([]*models.Part, error)
+	ScrapeProduct(productLink string, storeName string) (*models.Part, error)
+	UpdateProducts(urls []*dto.ProductLinkToUpdate, storeName string) ([]*dto.PartWithID, error)
 }
