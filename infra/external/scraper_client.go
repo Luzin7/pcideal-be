@@ -29,8 +29,8 @@ func NewScraperHTTPClient(baseURL string, apiKey string) *ScraperHTTPClient {
 	}
 }
 
-func (s *ScraperHTTPClient) ScrapeAllCategories() ([]*models.Part, error) {
-	response, err := s.Client.Get(fmt.Sprintf("%s/scrape-category", s.BaseURL))
+func (s *ScraperHTTPClient) ScrapeAllCategories(storeName string) ([]*models.Part, error) {
+	response, err := s.Client.Get(fmt.Sprintf("%s/%s/scrape-category", s.BaseURL, storeName))
 
 	if err != nil {
 		return nil, err
@@ -49,8 +49,8 @@ func (s *ScraperHTTPClient) ScrapeAllCategories() ([]*models.Part, error) {
 	return parts, nil
 }
 
-func (s *ScraperHTTPClient) ScrapeProduct(productLink string) (*models.Part, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/scrape-product", s.BaseURL), nil)
+func (s *ScraperHTTPClient) ScrapeProduct(productLink string, storeName string) (*models.Part, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s/scrape-product", s.BaseURL, storeName), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -85,13 +85,13 @@ func (s *ScraperHTTPClient) ScrapeProduct(productLink string) (*models.Part, err
 	return &part, nil
 }
 
-func (s *ScraperHTTPClient) UpdateProducts(links []*dto.ProductLinkToUpdate) ([]*dto.PartWithID, error) {
+func (s *ScraperHTTPClient) UpdateProducts(links []*dto.ProductLinkToUpdate, storeName string) ([]*dto.PartWithID, error) {
 	jsonBody, err := json.Marshal(links)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/update-products", s.BaseURL), bytes.NewReader(jsonBody))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s/update-products", s.BaseURL, storeName), bytes.NewReader(jsonBody))
 	if err != nil {
 		return nil, err
 	}
