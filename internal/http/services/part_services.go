@@ -87,7 +87,7 @@ func (partService *PartService) UpdateParts(urls []*dto.ProductLinkToUpdate) *er
 		return errors.New("urls cannot be empty", 400)
 	}
 
-	updatedParts, err := partService.ScraperClient.UpdateProducts(urls)
+	updatedParts, err := partService.ScraperClient.UpdateProducts(urls, "kabum")
 
 	if err != nil {
 		log.Printf("Error scraping product for part %v", err)
@@ -118,7 +118,7 @@ func (partService *PartService) UpdatePart(partId string) *errors.ErrService {
 		return errors.ErrNotFound("part")
 	}
 
-	scrapedPart, err := partService.ScraperClient.ScrapeProduct(part.URL)
+	scrapedPart, err := partService.ScraperClient.ScrapeProduct(part.URL, "kabum")
 
 	if err != nil {
 		log.Printf("Error scraping product for part %s: %v", partId, err)
