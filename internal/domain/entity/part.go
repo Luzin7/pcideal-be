@@ -6,66 +6,54 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// Specs representa as especificações técnicas de uma peça
-type specs struct {
-	// CPU e Motherboard
-	Socket           string  `bson:"socket,omitempty" json:"socket,omitempty"`           // AM4, LGA1700, etc
-	TDP              int64   `bson:"tdp,omitempty" json:"tdp,omitempty"`                 // em Watts
-	ClockSpeed       float64 `bson:"clock_speed,omitempty" json:"clock_speed,omitempty"` // em GHz
-	BoostClock       float64 `bson:"boost_clock,omitempty" json:"boost_clock,omitempty"` // em GHz
-	MemoryMaxSpeed   int64   `bson:"memory_max_speed,omitempty" json:"memory_max_speed,omitempty"`
-	Chipset          string  `bson:"chipset,omitempty" json:"chipset,omitempty"`
-	CpuCompatibility string  `bson:"cpu_compatibility,omitempty" json:"cpu_compatibility,omitempty"`
+type PartType string
 
-	// RAM e Motherboard
-	MemoryType  string `bson:"memory_type,omitempty" json:"memory_type,omitempty"` // DDR4, DDR5
-	MemorySlots int64  `bson:"memory_slots,omitempty" json:"memory_slots,omitempty"`
+const (
+	TypeCPU  PartType = "CPU"
+	TypeGPU  PartType = "GPU"
+	TypeMobo PartType = "MOTHERBOARD"
+	TypeRAM  PartType = "RAM"
+	TypePSU  PartType = "PSU"
+	TypeSSD  PartType = "SSD"
+)
 
-	// RAM e SSD
-	Capacity int64 `bson:"capacity,omitempty" json:"capacity,omitempty"` // em GB
-	Speed    int64 `bson:"speed,omitempty" json:"speed,omitempty"`       // MHz para RAM
-
-	// GPU e SSD
-	Interface string `bson:"interface,omitempty" json:"interface,omitempty"` // PCIe 3.0, PCIe 4.0
-
-	// GPU
-	PowerSupply int64  `bson:"power_supply,omitempty" json:"power_supply,omitempty"` // Fonte recomendada em W
-	VideoMemory string `bson:"video_memory,omitempty" json:"video_memory,omitempty"`
-
-	// Motherboard e Case
-	FormFactor string `bson:"form_factor,omitempty" json:"form_factor,omitempty"` // ATX, mATX, ITX
+type Specs struct {
+	Socket     string `bson:"socket,omitempty" json:"socket,omitempty"`
+	MemoryType string `bson:"memory_type,omitempty" json:"memory_type,omitempty"`
+	// FormFactor string `bson:"form_factor,omitempty" json:"form_factor,omitempty"` // ATX, mATX
+	Wattage     int `bson:"wattage,omitempty" json:"wattage,omitempty"`             // O que a Fonte ENTREGA
+	MinPSUWatts int `bson:"min_psu_watts,omitempty" json:"min_psu_watts,omitempty"` // O que a GPU PEDE
+	VramGB      int `bson:"vram_gb,omitempty" json:"vram_gb,omitempty"`             // GPU
+	CapacityGB  int `bson:"capacity_gb,omitempty" json:"capacity_gb,omitempty"`     // RAM/SSD
+	// GpuTier    string `bson:"gpu_tier,omitempty" json:"gpu_tier,omitempty"`
 }
-
-// type benchmark struct {
-// 	CinebenchR23 int `bson:"cinebench_r23,omitempty" json:"cinebench_r23,omitempty"`
-// 	TimeSpy      int `bson:"3dmark_timespy,omitempty" json:"3dmark_timespy,omitempty"`
-// }
 
 type Part struct {
-	ID    primitive.ObjectID `bson:"_id" json:"id"`
-	Type  string             `bson:"type" json:"type"`   // CPU, GPU, MOTHERBOARD, RAM, SSD, PSU, CASE
-	Brand string             `bson:"brand" json:"brand"` // AMD, Intel, NVIDIA, etc
-	Model string             `bson:"model" json:"model"`
-	Specs specs              `bson:"specs" json:"specs"`
-	// Benchmark   benchmark `bson:"benchmark" json:"benchmark"`
-	PriceCents    int64     `bson:"price_cents" json:"price_cents"`
-	URL           string    `bson:"url" json:"url"`
-	AffiliatedURL string    `bson:"affiliate_url" json:"affiliate_url"`
-	Store         string    `bson:"store" json:"store"` // Kabum, Amazon, etc
-	UpdatedAt     time.Time `bson:"updated_at" json:"updated_at"`
+	ID            primitive.ObjectID `bson:"_id,omitempty"`
+	Type          PartType           `bson:"type"`
+	Brand         string             `bson:"brand"`
+	Model         string             `bson:"model"`
+	URL           string             `bson:"url"`
+	Store         string             `bson:"store"`
+	AffiliatedURL string             `bson:"affiliated_url"`
+	PriceCents    int64              `bson:"price_cents"`
+	Specs         Specs              `bson:"specs"`
+	IsParsed      bool               `bson:"is_parsed"`
+	UpdatedAt     time.Time          `bson:"updated_at"`
 }
 
-func NewPart(partType, brand, model string, specs specs, priceCents int64, url string, affiliateUrl string, store string) *Part {
+func NewPart(ty PartType, brand string, model string, url string, store string, affiliatedURL string, priceCents int64, specs Specs) *Part {
 	return &Part{
 		ID:            primitive.NewObjectID(),
-		Type:          partType,
+		Type:          ty,
 		Brand:         brand,
 		Model:         model,
-		Specs:         specs,
-		PriceCents:    priceCents,
 		URL:           url,
-		AffiliatedURL: affiliateUrl,
 		Store:         store,
+		AffiliatedURL: affiliatedURL,
+		PriceCents:    priceCents,
+		Specs:         specs,
+		IsParsed:      true,
 		UpdatedAt:     time.Now(),
 	}
 }
