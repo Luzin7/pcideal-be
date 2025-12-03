@@ -2,6 +2,7 @@ package external
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -29,7 +30,7 @@ func NewScraperHTTPClient(baseURL string, apiKey string) *ScraperHTTPClient {
 	}
 }
 
-func (s *ScraperHTTPClient) ScrapeAllCategories(storeName string) ([]*entity.Part, error) {
+func (s *ScraperHTTPClient) ScrapeAllCategories(ctx context.Context, storeName string) ([]*entity.Part, error) {
 	response, err := s.Client.Get(fmt.Sprintf("%s/%s/scrape-category", s.BaseURL, storeName))
 
 	if err != nil {
@@ -49,7 +50,7 @@ func (s *ScraperHTTPClient) ScrapeAllCategories(storeName string) ([]*entity.Par
 	return parts, nil
 }
 
-func (s *ScraperHTTPClient) ScrapeProduct(productLink string, storeName string) (*entity.Part, error) {
+func (s *ScraperHTTPClient) ScrapeProduct(ctx context.Context, productLink string, storeName string) (*entity.Part, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s/scrape-product", s.BaseURL, storeName), nil)
 	if err != nil {
 		return nil, err
@@ -85,7 +86,7 @@ func (s *ScraperHTTPClient) ScrapeProduct(productLink string, storeName string) 
 	return &part, nil
 }
 
-func (s *ScraperHTTPClient) UpdateProducts(links []*dto.ProductLinkToUpdate, storeName string) ([]*dto.PartWithID, error) {
+func (s *ScraperHTTPClient) UpdateProducts(ctx context.Context, links []*dto.ProductLinkToUpdate, storeName string) ([]*dto.PartWithID, error) {
 	jsonBody, err := json.Marshal(links)
 	if err != nil {
 		return nil, err
