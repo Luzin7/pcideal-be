@@ -22,8 +22,7 @@ func NewPartRepository(client *mongo.Database) *PartRepository {
 	}
 }
 
-func (partRepository *PartRepository) CreatePart(part *entity.Part) error {
-	ctx := context.TODO()
+func (partRepository *PartRepository) CreatePart(ctx context.Context, part *entity.Part) error {
 
 	_, err := partRepository.collection.InsertOne(ctx, part)
 
@@ -34,8 +33,7 @@ func (partRepository *PartRepository) CreatePart(part *entity.Part) error {
 	return nil
 }
 
-func (partRepository *PartRepository) UpdatePart(partId string, part *entity.Part) error {
-	ctx := context.TODO()
+func (partRepository *PartRepository) UpdatePart(ctx context.Context, partId string, part *entity.Part) error {
 	log.Printf("Updating part with ID: %s", partId)
 	objID, err := primitive.ObjectIDFromHex(partId)
 
@@ -65,8 +63,7 @@ func (partRepository *PartRepository) UpdatePart(partId string, part *entity.Par
 	return nil
 }
 
-func (partRepository *PartRepository) GetAllParts() ([]*entity.Part, error) {
-	ctx := context.TODO()
+func (partRepository *PartRepository) GetAllParts(ctx context.Context) ([]*entity.Part, error) {
 
 	cursor, err := partRepository.collection.Find(ctx, bson.M{})
 
@@ -95,8 +92,7 @@ func (partRepository *PartRepository) GetAllParts() ([]*entity.Part, error) {
 	return parts, nil
 }
 
-func (partRepository *PartRepository) GetPartByID(id string) (*entity.Part, error) {
-	ctx := context.TODO()
+func (partRepository *PartRepository) GetPartByID(ctx context.Context, id string) (*entity.Part, error) {
 
 	var part entity.Part
 
@@ -117,8 +113,7 @@ func (partRepository *PartRepository) GetPartByID(id string) (*entity.Part, erro
 	return &part, nil
 }
 
-func (partRepository *PartRepository) GetPartByModel(model string) (*entity.Part, error) {
-	ctx := context.TODO()
+func (partRepository *PartRepository) GetPartByModel(ctx context.Context, model string) (*entity.Part, error) {
 
 	var part entity.Part
 
