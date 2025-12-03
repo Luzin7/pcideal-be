@@ -5,7 +5,7 @@ import (
 
 	"slices"
 
-	"github.com/Luzin7/pcideal-be/internal/core/models"
+	"github.com/Luzin7/pcideal-be/internal/domain/entity"
 )
 
 type compatibilityMap struct {
@@ -72,7 +72,7 @@ func validateCompatibility(validationType string, key string, value string) bool
 	return false
 }
 
-func ValidateCPUAndMotherboard(cpu *models.Part, mobo *models.Part) bool {
+func ValidateCPUAndMotherboard(cpu *entity.Part, mobo *entity.Part) bool {
 
 	if cpu.Specs.Socket == "" || mobo.Specs.Socket == "" {
 		fmt.Println("Warning: validation is partial")
