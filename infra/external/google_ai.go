@@ -2,9 +2,7 @@ package external
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
@@ -142,49 +140,55 @@ The client wants a PC that will be used for %s:
 	return fullPrompt, nil
 }
 
-func CleanAndParseGeminiResponse(raw string) (*entity.AIBuildResponse, error) {
-	re := regexp.MustCompile("(?s)```json\\n(.*?)\\n```")
-	match := re.FindStringSubmatch(raw)
+// TODO: Descomentar quando entity.AIBuildResponse for criada
+// func CleanAndParseGeminiResponse(raw string) (*entity.AIBuildResponse, error) {
+// 	re := regexp.MustCompile("(?s)```json\\n(.*?)\\n```")
+// 	match := re.FindStringSubmatch(raw)
 
-	var cleaned string
-	if len(match) > 1 {
-		cleaned = match[1]
-	} else {
-		cleaned = raw
-	}
+// 	var cleaned string
+// 	if len(match) > 1 {
+// 		cleaned = match[1]
+// 	} else {
+// 		cleaned = raw
+// 	}
 
-	cleaned = strings.ReplaceAll(cleaned, "\\n", "")
-	cleaned = strings.ReplaceAll(cleaned, "\\\"", "\"")
-	cleaned = strings.ReplaceAll(cleaned, "\\\\", "\\")
+// 	cleaned = strings.ReplaceAll(cleaned, "\\n", "")
+// 	cleaned = strings.ReplaceAll(cleaned, "\\\"", "\"")
+// 	cleaned = strings.ReplaceAll(cleaned, "\\\\", "\\")
 
-	var result *entity.AIBuildResponse
-	err := json.Unmarshal([]byte(cleaned), &result)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal cleaned response: %w", err)
-	}
+// 	var result *entity.AIBuildResponse
+// 	err := json.Unmarshal([]byte(cleaned), &result)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to unmarshal cleaned response: %w", err)
+// 	}
 
-	return result, nil
-}
+// 	return result, nil
+// }
 
-func (c *GoogleAIClient) GenerateBuilds(prompt string) (*entity.AIBuildResponse, error) {
-	ctx := context.Background()
+// func (c *GoogleAIClient) GenerateBuilds(prompt string) (*entity.AIBuildResponse, error) {
+// 	ctx := context.Background()
 
-	rawResponse, err := c.Client.Models.GenerateContent(
-		ctx,
-		"gemini-2.0-flash",
-		genai.Text(prompt),
-		nil,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate builds: %w", err)
-	}
+// 	rawResponse, err := c.Client.Models.GenerateContent(
+// 		ctx,
+// 		"gemini-2.0-flash",
+// 		genai.Text(prompt),
+// 		nil,
+// 	)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to generate builds: %w", err)
+// 	}
 
-	cleanedJSON, err := CleanAndParseGeminiResponse(rawResponse.Text())
-	if err != nil {
-		return nil, fmt.Errorf("failed to clean raw response: %s", err)
-	}
+// 	cleanedJSON, err := CleanAndParseGeminiResponse(rawResponse.Text())
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to clean raw response: %s", err)
+// 	}
 
-	return cleanedJSON, nil
+// 	return cleanedJSON, nil
+// }
+
+func (c *GoogleAIClient) GeneratePcBuildAnalysis(ctx context.Context, part *entity.Part) (string, error) {
+	// TODO: Implementar análise de build via IA
+	return "", fmt.Errorf("not implemented yet")
 }
 
 func (c *GoogleAIClient) Close() error {
