@@ -6,11 +6,11 @@ import (
 
 	"github.com/Luzin7/pcideal-be/infra/database"
 	"github.com/Luzin7/pcideal-be/infra/external"
+	"github.com/Luzin7/pcideal-be/infra/http/controllers"
+	"github.com/Luzin7/pcideal-be/infra/http/routes"
 	"github.com/Luzin7/pcideal-be/infra/repositories"
 	"github.com/Luzin7/pcideal-be/internal/domain/matching"
-	"github.com/Luzin7/pcideal-be/internal/http/controllers"
-	"github.com/Luzin7/pcideal-be/internal/http/routes"
-	"github.com/Luzin7/pcideal-be/internal/http/services"
+	"github.com/Luzin7/pcideal-be/internal/services"
 	"github.com/joho/godotenv"
 )
 
@@ -24,9 +24,9 @@ func main() {
 	}
 
 	port := os.Getenv("PORT")
-    if port == "" {
-        port = "8080"
-    }
+	if port == "" {
+		port = "8080"
+	}
 
 	connectionString := os.Getenv("DATABASE_URL")
 	databaseName := os.Getenv("PCIDEAL_DB_NAME")
@@ -52,7 +52,7 @@ func main() {
 	router := routes.SetupRouter(partController)
 
 	log.Printf("Servidor iniciando na porta %s...", port)
-    if err := router.Run(":" + port); err != nil {
-        log.Fatal("Erro ao subir o servidor:", err)
-    }
+	if err := router.Run(":" + port); err != nil {
+		log.Fatal("Erro ao subir o servidor:", err)
+	}
 }
