@@ -1,13 +1,17 @@
 package routes
 
 import (
-	"github.com/Luzin7/pcideal-be/infra/http/controllers"
+	partControllers "github.com/Luzin7/pcideal-be/infra/http/controllers/part"
 	"github.com/Luzin7/pcideal-be/infra/http/middlewares"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(partController *controllers.PartController) *gin.Engine {
+func SetupRouter(
+	getAllPartsController *partControllers.GetAllPartsController,
+	getPartByIDController *partControllers.GetPartByIDController,
+	getBuildRecsController *partControllers.GetBuildRecommendationsController,
+) *gin.Engine {
 	router := gin.Default()
 	router.SetTrustedProxies(nil)
 
@@ -22,13 +26,13 @@ func SetupRouter(partController *controllers.PartController) *gin.Engine {
 
 	parts := api.Group("/parts")
 	{
-		parts.GET("/", partController.GetAllParts)
-		parts.GET("/:id", partController.GetPartByID)
+		parts.GET("/", getAllPartsController.Handle)
+		parts.GET("/:id", getPartByIDController.Handle)
 	}
 
 	builds := api.Group("/builds")
 	{
-		builds.POST("/recommendations", partController.GetBuildRecomendations)
+		builds.POST("/recommendations", getBuildRecsController.Handle)
 	}
 
 	return router
