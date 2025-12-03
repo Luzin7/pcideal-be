@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Luzin7/pcideal-be/internal/core/models"
-	"github.com/Luzin7/pcideal-be/internal/core/util"
+	"github.com/Luzin7/pcideal-be/internal/domain/entity"
+	"github.com/Luzin7/pcideal-be/internal/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -26,7 +26,7 @@ func NewPartMatchingService(client *mongo.Database) *PartMatchingService {
 	}
 }
 
-func (pm *PartMatchingService) FindParts(productName, productType, productBrand string) ([]models.Part, error) {
+func (pm *PartMatchingService) FindParts(productName, productType, productBrand string) ([]entity.Part, error) {
 	if productName == "" {
 		return nil, fmt.Errorf("productName is empty")
 	}
@@ -105,7 +105,7 @@ func (pm *PartMatchingService) buildFilter(productType, productBrand string, wor
 	return filter
 }
 
-func (pm *PartMatchingService) executeQuery(filter bson.M) ([]models.Part, error) {
+func (pm *PartMatchingService) executeQuery(filter bson.M) ([]entity.Part, error) {
 	cursor, err := pm.collection.Find(context.Background(), filter, options.Find().SetLimit(200))
 	if err != nil {
 		log.Printf("Error executing query: %v", err)
@@ -113,7 +113,7 @@ func (pm *PartMatchingService) executeQuery(filter bson.M) ([]models.Part, error
 	}
 	defer cursor.Close(context.Background())
 
-	var parts []models.Part
+	var parts []entity.Part
 	if err = cursor.All(context.Background(), &parts); err != nil {
 		log.Printf("Error decoding results: %v", err)
 		return nil, err
@@ -122,7 +122,7 @@ func (pm *PartMatchingService) executeQuery(filter bson.M) ([]models.Part, error
 	return parts, nil
 }
 
-func (pm *PartMatchingService) FindBestMatch(targetName string, parts []models.Part) *models.Part {
+func (pm *PartMatchingService) FindBestMatch(targetName string, parts []entity.Part) *entity.Part {
 	if len(parts) == 0 {
 		log.Printf("parts é vazio")
 		return nil
