@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/Luzin7/pcideal-be/infra/dto"
-	"github.com/Luzin7/pcideal-be/internal/core/models"
+	"github.com/Luzin7/pcideal-be/internal/domain/entity"
 )
 
 type ScraperHTTPClient struct {
@@ -29,7 +29,7 @@ func NewScraperHTTPClient(baseURL string, apiKey string) *ScraperHTTPClient {
 	}
 }
 
-func (s *ScraperHTTPClient) ScrapeAllCategories(storeName string) ([]*models.Part, error) {
+func (s *ScraperHTTPClient) ScrapeAllCategories(storeName string) ([]*entity.Part, error) {
 	response, err := s.Client.Get(fmt.Sprintf("%s/%s/scrape-category", s.BaseURL, storeName))
 
 	if err != nil {
@@ -38,7 +38,7 @@ func (s *ScraperHTTPClient) ScrapeAllCategories(storeName string) ([]*models.Par
 
 	defer response.Body.Close()
 
-	var parts []*models.Part
+	var parts []*entity.Part
 
 	err = json.NewDecoder(response.Body).Decode(&parts)
 
@@ -49,7 +49,7 @@ func (s *ScraperHTTPClient) ScrapeAllCategories(storeName string) ([]*models.Par
 	return parts, nil
 }
 
-func (s *ScraperHTTPClient) ScrapeProduct(productLink string, storeName string) (*models.Part, error) {
+func (s *ScraperHTTPClient) ScrapeProduct(productLink string, storeName string) (*entity.Part, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s/scrape-product", s.BaseURL, storeName), nil)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (s *ScraperHTTPClient) ScrapeProduct(productLink string, storeName string) 
 		return nil, fmt.Errorf("erro ao chamar scraping API: %s", resp.Status)
 	}
 
-	var part models.Part
+	var part entity.Part
 	if err := json.NewDecoder(resp.Body).Decode(&part); err != nil {
 		log.Printf("Error decoding response: %v", err)
 		return nil, err
