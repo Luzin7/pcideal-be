@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/Luzin7/pcideal-be/internal/core/models"
+	"github.com/Luzin7/pcideal-be/internal/domain/entity"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -22,7 +22,7 @@ func NewPartRepository(client *mongo.Database) *PartRepository {
 	}
 }
 
-func (partRepository *PartRepository) CreatePart(part *models.Part) error {
+func (partRepository *PartRepository) CreatePart(part *entity.Part) error {
 	ctx := context.TODO()
 
 	_, err := partRepository.collection.InsertOne(ctx, part)
@@ -34,7 +34,7 @@ func (partRepository *PartRepository) CreatePart(part *models.Part) error {
 	return nil
 }
 
-func (partRepository *PartRepository) UpdatePart(partId string, part *models.Part) error {
+func (partRepository *PartRepository) UpdatePart(partId string, part *entity.Part) error {
 	ctx := context.TODO()
 	log.Printf("Updating part with ID: %s", partId)
 	objID, err := primitive.ObjectIDFromHex(partId)
@@ -65,7 +65,7 @@ func (partRepository *PartRepository) UpdatePart(partId string, part *models.Par
 	return nil
 }
 
-func (partRepository *PartRepository) GetAllParts() ([]*models.Part, error) {
+func (partRepository *PartRepository) GetAllParts() ([]*entity.Part, error) {
 	ctx := context.TODO()
 
 	cursor, err := partRepository.collection.Find(ctx, bson.M{})
@@ -76,10 +76,10 @@ func (partRepository *PartRepository) GetAllParts() ([]*models.Part, error) {
 
 	defer cursor.Close(ctx)
 
-	var parts []*models.Part
+	var parts []*entity.Part
 
 	for cursor.Next(ctx) {
-		var part models.Part
+		var part entity.Part
 
 		if err := cursor.Decode(&part); err != nil {
 			return nil, err
@@ -95,10 +95,10 @@ func (partRepository *PartRepository) GetAllParts() ([]*models.Part, error) {
 	return parts, nil
 }
 
-func (partRepository *PartRepository) GetPartByID(id string) (*models.Part, error) {
+func (partRepository *PartRepository) GetPartByID(id string) (*entity.Part, error) {
 	ctx := context.TODO()
 
-	var part models.Part
+	var part entity.Part
 
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -117,10 +117,10 @@ func (partRepository *PartRepository) GetPartByID(id string) (*models.Part, erro
 	return &part, nil
 }
 
-func (partRepository *PartRepository) GetPartByModel(model string) (*models.Part, error) {
+func (partRepository *PartRepository) GetPartByModel(model string) (*entity.Part, error) {
 	ctx := context.TODO()
 
-	var part models.Part
+	var part entity.Part
 
 	err := partRepository.collection.FindOne(ctx, bson.M{"model": model}).Decode(&part)
 
