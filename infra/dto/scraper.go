@@ -1,6 +1,6 @@
 package dto
 
-import "github.com/Luzin7/pcideal-be/internal/core/models"
+import "github.com/Luzin7/pcideal-be/internal/domain/entity"
 
 type ProductLinkToUpdate struct {
 	ID  string `json:"id"`
@@ -9,5 +9,5 @@ type ProductLinkToUpdate struct {
 
 type PartWithID struct {
 	ID   string       `json:"id"`
-	Part *models.Part `json:"part"`
+	Part *entity.Part `json:"part"`
 }

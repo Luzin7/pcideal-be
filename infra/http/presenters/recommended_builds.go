@@ -1,6 +1,6 @@
 package presenters
 
-import "github.com/Luzin7/pcideal-be/internal/core/models"
+import "github.com/Luzin7/pcideal-be/internal/domain/entity"
 
 type RecommendedBuildsPresenter struct {
 	Builds []RecommendationBuild `json:"builds"`
@@ -16,10 +16,10 @@ type RecommendationBuild struct {
 }
 
 type BuildParts struct {
-	CPU            *models.Part `json:"cpu"`
-	Motherboard    *models.Part `json:"mobo"`
-	RAM            *models.Part `json:"ram"`
-	PrimaryStorage *models.Part `json:"primary_storage"`
-	GPU            *models.Part `json:"gpu"`
-	PSU            *models.Part `json:"psu"`
+	CPU            *entity.Part `json:"cpu"`
+	Motherboard    *entity.Part `json:"mobo"`
+	RAM            *entity.Part `json:"ram"`
+	PrimaryStorage *entity.Part `json:"primary_storage"`
+	GPU            *entity.Part `json:"gpu"`
+	PSU            *entity.Part `json:"psu"`
 }
