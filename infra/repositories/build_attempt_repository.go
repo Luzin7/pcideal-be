@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/Luzin7/pcideal-be/internal/core/models"
+	"github.com/Luzin7/pcideal-be/internal/domain/entity"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -21,7 +21,7 @@ func NewBuildAttemptRepository(client *mongo.Database) *BuildAttemptRepository {
 	}
 }
 
-func (buildattemptRepository *BuildAttemptRepository) CreateBuildAttempt(buildattempt *models.BuildAttempt) error {
+func (buildattemptRepository *BuildAttemptRepository) CreateBuildAttempt(buildattempt *entity.BuildAttempt) error {
 	ctx := context.TODO()
 
 	_, err := buildattemptRepository.collection.InsertOne(ctx, buildattempt)
@@ -49,7 +49,7 @@ func (buildattemptRepository *BuildAttemptRepository) CountBuildAttemptsByIP(ip 
 	return int(count), nil
 }
 
-func (buildattemptRepository *BuildAttemptRepository) GetBuildAttemptsByIP(ip string, since time.Time) ([]*models.BuildAttempt, error) {
+func (buildattemptRepository *BuildAttemptRepository) GetBuildAttemptsByIP(ip string, since time.Time) ([]*entity.BuildAttempt, error) {
 	ctx := context.TODO()
 
 	filter := bson.M{
@@ -63,9 +63,9 @@ func (buildattemptRepository *BuildAttemptRepository) GetBuildAttemptsByIP(ip st
 	}
 	defer cursor.Close(ctx)
 
-	var buildattempts []*models.BuildAttempt
+	var buildattempts []*entity.BuildAttempt
 	for cursor.Next(ctx) {
-		var buildattempt models.BuildAttempt
+		var buildattempt entity.BuildAttempt
 		if err := cursor.Decode(&buildattempt); err != nil {
 			return nil, err
 		}
