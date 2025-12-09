@@ -18,14 +18,18 @@ const (
 )
 
 type Specs struct {
-	Socket     string `bson:"socket,omitempty" json:"socket,omitempty"`
-	MemoryType string `bson:"memory_type,omitempty" json:"memory_type,omitempty"`
-	// FormFactor string `bson:"form_factor,omitempty" json:"form_factor,omitempty"` // ATX, mATX
-	Wattage     int `bson:"wattage,omitempty" json:"wattage,omitempty"`             // O que a Fonte ENTREGA
-	MinPSUWatts int `bson:"min_psu_watts,omitempty" json:"min_psu_watts,omitempty"` // O que a GPU PEDE
-	VramGB      int `bson:"vram_gb,omitempty" json:"vram_gb,omitempty"`             // GPU
-	CapacityGB  int `bson:"capacity_gb,omitempty" json:"capacity_gb,omitempty"`     // RAM/SSD
-	// GpuTier    string `bson:"gpu_tier,omitempty" json:"gpu_tier,omitempty"`
+	Socket           string `bson:"socket,omitempty"`
+	MemoryType       string `bson:"memory_type,omitempty"`
+	FormFactor       string `bson:"form_factor,omitempty"`
+	MinPSUWatts      int    `bson:"min_psu_watts,omitempty"`
+	Wattage          int    `bson:"wattage,omitempty"`
+	EfficiencyRating string `bson:"efficiency_rating,omitempty"`
+	PerformanceScore int    `bson:"performance_score,omitempty"`
+	TierScore        string `bson:"tier_score,omitempty"`
+	VramGB           int    `bson:"vram_gb,omitempty"`
+	CapacityGB       int    `bson:"capacity_gb,omitempty"`
+	MemorySpeedMHz   int    `bson:"memory_speed_mhz,omitempty"`
+	CasLatency       int    `bson:"cas_latency,omitempty"`
 }
 
 type Part struct {
