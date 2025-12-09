@@ -12,4 +12,5 @@ type PartRepository interface {
 	GetPartByID(ctx context.Context, id string) (*entity.Part, error)
 	GetPartByModel(ctx context.Context, model string) (*entity.Part, error)
 	UpdatePart(ctx context.Context, partId string, part *entity.Part) error
+	FindPartByTypeAndBrandWithMaxPrice(ctx context.Context, partType, brand string, maxPriceCents int) (*entity.Part, error)
 }
