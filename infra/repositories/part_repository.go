@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type PartRepository struct {
@@ -76,13 +77,13 @@ func (partRepository *PartRepository) GetAllParts(ctx context.Context) ([]*entit
 	var parts []*entity.Part
 
 	for cursor.Next(ctx) {
-		var part entity.Part
+		part := new(entity.Part)
 
-		if err := cursor.Decode(&part); err != nil {
+		if err := cursor.Decode(part); err != nil {
 			return nil, err
 		}
 
-		parts = append(parts, &part)
+		parts = append(parts, part)
 	}
 
 	if err := cursor.Err(); err != nil {
@@ -127,4 +128,42 @@ func (partRepository *PartRepository) GetPartByModel(ctx context.Context, model 
 	}
 
 	return &part, nil
+}
+
+func (partRepository *PartRepository) FindPartByTypeAndBrandWithMaxPrice(ctx context.Context, partType entity.PartType, brandPreference string, maxPriceCents int64) ([]*entity.Part, error) {
+	filter := bson.M{
+		"type":        partType,
+		"price_cents": bson.M{"$lte": maxPriceCents},
+	}
+
+	if brandPreference != "" {
+		filter["model"] = bson.M{"$regex": brandPreference, "$options": "i"}
+	}
+
+	opts := options.Find().SetSort(bson.D{{Key: "price_cents", Value: -1}})
+	cursor, err := partRepository.collection.Find(ctx, filter, opts)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer cursor.Close(ctx)
+
+	var parts []*entity.Part
+
+	for cursor.Next(ctx) {
+		part := new(entity.Part)
+
+		if err := cursor.Decode(part); err != nil {
+			return nil, err
+		}
+
+		parts = append(parts, part)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return parts, nil
 }
