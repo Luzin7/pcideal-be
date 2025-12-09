@@ -18,17 +18,16 @@ func NewSelectBestCPUUseCase(partRepository repository.PartRepository) *SelectBe
 }
 
 type SelectBestCPUArgs struct {
-	brandPreference string
-	maxPriceCents   int64
+	BrandPreference string
+	MaxPriceCents   int64
 }
 
-func (uc *SelectBestCPUUseCase) Execute(cpuPreference SelectBestCPUArgs) (entity.Part, error) {
-	ctx := context.TODO()
+func (uc *SelectBestCPUUseCase) Execute(ctx context.Context, cpuPreference SelectBestCPUArgs) (entity.Part, error) {
 
 	cpus, err := uc.partRepository.FindPartByTypeAndBrandWithMaxPrice(ctx, repository.FindPartByTypeAndBrandWithMaxPriceArgs{
 		PartType:      "CPU",
-		Brand:         cpuPreference.brandPreference,
-		MaxPriceCents: cpuPreference.maxPriceCents,
+		Brand:         cpuPreference.BrandPreference,
+		MaxPriceCents: cpuPreference.MaxPriceCents,
 	})
 	if err != nil {
 		return entity.Part{}, err //TODO: adicionar erro custom depois
@@ -37,7 +36,8 @@ func (uc *SelectBestCPUUseCase) Execute(cpuPreference SelectBestCPUArgs) (entity
 	var bestCPU entity.Part
 
 	for i, cpu := range cpus {
-		if i == 0 || cpu.Specs.PerformanceScore >= bestCPU.Specs.PerformanceScore && cpu.PriceCents <= cpuPreference.maxPriceCents {
+		if i == 0 || (cpu.Specs.PerformanceScore > bestCPU.Specs.PerformanceScore ||
+			(cpu.Specs.PerformanceScore == bestCPU.Specs.PerformanceScore && cpu.PriceCents < bestCPU.PriceCents)) {
 			bestCPU = *cpu
 		}
 	}
