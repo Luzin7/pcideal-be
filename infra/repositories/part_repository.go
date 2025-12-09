@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
+	"github.com/Luzin7/pcideal-be/internal/domain/repository"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -130,14 +131,17 @@ func (partRepository *PartRepository) GetPartByModel(ctx context.Context, model 
 	return &part, nil
 }
 
-func (partRepository *PartRepository) FindPartByTypeAndBrandWithMaxPrice(ctx context.Context, partType entity.PartType, brandPreference string, maxPriceCents int64) ([]*entity.Part, error) {
+func (partRepository *PartRepository) FindPartByTypeAndBrandWithMaxPrice(ctx context.Context, args repository.FindPartByTypeAndBrandWithMaxPriceArgs) ([]*entity.Part, error) {
 	filter := bson.M{
-		"type":        partType,
-		"price_cents": bson.M{"$lte": maxPriceCents},
+		"type":        args.PartType,
+		"price_cents": bson.M{"$lte": args.MaxPriceCents},
 	}
 
-	if brandPreference != "" {
-		filter["model"] = bson.M{"$regex": brandPreference, "$options": "i"}
+	if args.Brand != "" {
+		filter["model"] = bson.M{"$regex": args.Brand, "$options": "i"}
+	}
+	if args.PartType == "PSU" && args.MinPSUWatts > 0 {
+		filter["specs.wattage"] = bson.M{"$gte": args.MinPSUWatts}
 	}
 
 	opts := options.Find().SetSort(bson.D{{Key: "price_cents", Value: -1}})
