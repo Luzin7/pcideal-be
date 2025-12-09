@@ -18,17 +18,15 @@ func NewSelectBestGPUUseCase(partRepository repository.PartRepository) *SelectBe
 }
 
 type SelectBestGPUArgs struct {
-	brandPreference string
-	maxPriceCents   int64
+	BrandPreference string
+	MaxPriceCents   int64
 }
 
-func (uc *SelectBestGPUUseCase) Execute(gpuPreference SelectBestGPUArgs) (entity.Part, error) {
-	ctx := context.TODO()
-
+func (uc *SelectBestGPUUseCase) Execute(ctx context.Context, gpuPreference SelectBestGPUArgs) (entity.Part, error) {
 	gpus, err := uc.partRepository.FindPartByTypeAndBrandWithMaxPrice(ctx, repository.FindPartByTypeAndBrandWithMaxPriceArgs{
 		PartType:      "GPU",
-		Brand:         gpuPreference.brandPreference,
-		MaxPriceCents: gpuPreference.maxPriceCents,
+		Brand:         gpuPreference.BrandPreference,
+		MaxPriceCents: gpuPreference.MaxPriceCents,
 	})
 	if err != nil {
 		return entity.Part{}, err //TODO: adicionar erro custom depois
@@ -37,7 +35,8 @@ func (uc *SelectBestGPUUseCase) Execute(gpuPreference SelectBestGPUArgs) (entity
 	var bestGPU entity.Part
 
 	for i, gpu := range gpus {
-		if i == 0 || gpu.Specs.PerformanceScore >= bestGPU.Specs.PerformanceScore && gpu.PriceCents <= gpuPreference.maxPriceCents {
+		if i == 0 || (gpu.Specs.PerformanceScore > bestGPU.Specs.PerformanceScore ||
+			(gpu.Specs.PerformanceScore == bestGPU.Specs.PerformanceScore && gpu.PriceCents < bestGPU.PriceCents)) {
 			bestGPU = *gpu
 		}
 	}
