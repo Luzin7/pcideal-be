@@ -29,17 +29,8 @@ func NewGenerateBuildRecommendationsUseCase(
 }
 
 func (uc *GenerateBuildRecommendationsUseCase) Execute(usageType string, cpuPreference string, gpuPreference string, budget int64) (*presenters.RecommendedBuildsPresenter, *errors.ErrService) {
-	// TODO: Implementar integração com GoogleAIClient quando os métodos BuildComputerPrompt e GenerateBuilds forem adicionados à interface
 	// TODO: Implementar PartMatchingService para FindParts e FindBestMatch
 	// TODO: Implementar função ValidateCPUAndMotherboard para validar compatibilidade entre CPU e Motherboard
-
-	// Lógica completa será implementada após criar os serviços necessários:
-	// 1. GoogleAIClient.BuildComputerPrompt() - Gerar prompt baseado nos parâmetros
-	// 2. GoogleAIClient.GenerateBuilds() - Gerar recomendações de build via IA
-	// 3. PartMatchingService.FindParts() - Buscar peças compatíveis no banco
-	// 4. PartMatchingService.FindBestMatch() - Encontrar melhor match de peças
-	// 5. validation.ValidateCPUAndMotherboard() - Validar compatibilidade de socket
-	// 6. Atualizar preços em background via UpdatePartsUseCase
 
 	return nil, errors.New("Build recommendations not yet implemented", 501)
 }
