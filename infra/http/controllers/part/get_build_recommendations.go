@@ -6,6 +6,7 @@ import (
 
 	"github.com/Luzin7/pcideal-be/infra/http/middlewares"
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
+	"github.com/Luzin7/pcideal-be/internal/dto"
 	"github.com/Luzin7/pcideal-be/internal/errors"
 	"github.com/Luzin7/pcideal-be/internal/useCases/buildAttempt"
 	"github.com/Luzin7/pcideal-be/internal/useCases/part"
@@ -30,13 +31,7 @@ func NewGetBuildRecommendationsController(
 func (c *GetBuildRecommendationsController) Handle(ctx *gin.Context) {
 	clientIP := middlewares.GetClientIP(ctx)
 
-	var req struct {
-		UsageType     string `json:"usage_type"`
-		CpuPreference string `json:"cpu_preference"`
-		GpuPreference string `json:"gpu_preference"`
-		Budget        int64  `json:"budget"`
-	}
-
+	var req dto.GenerateBuildRecommendationsDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": "Invalid request body"})
 		return
@@ -64,7 +59,12 @@ func (c *GetBuildRecommendationsController) Handle(ctx *gin.Context) {
 	}
 	_ = c.buildAttemptService.CreateBuildAttempt(buildAttempt)
 
-	part, err := c.generateBuildUC.Execute(req.UsageType, req.CpuPreference, req.GpuPreference, req.Budget)
+	part, err := c.generateBuildUC.Execute(ctx, dto.GenerateBuildRecommendationsDTO{
+		UsageType:     req.UsageType,
+		CpuPreference: req.CpuPreference,
+		GpuPreference: req.GpuPreference,
+		Budget:        req.Budget,
+	})
 	if err != nil {
 		ctx.JSON(err.StatusCode, gin.H{"code": err.StatusCode, "message": err.Message})
 		return
