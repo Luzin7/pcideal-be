@@ -7,12 +7,11 @@ type RecommendedBuildsPresenter struct {
 }
 
 type RecommendationBuild struct {
-	BuildType   string     `json:"build_type"`
-	Budget      int64      `json:"budget"`
-	BuildValue  int64      `json:"build_value"`
-	Description string     `json:"description"`
-	Parts       BuildParts `json:"parts"`
-	Summary     string     `json:"summary"`
+	BuildType  string     `json:"build_type"`
+	Budget     int64      `json:"budget"`
+	BuildValue int64      `json:"build_value"`
+	Parts      BuildParts `json:"parts"`
+	Summary    string     `json:"summary"`
 }
 
 type BuildParts struct {
