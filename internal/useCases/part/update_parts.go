@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/Luzin7/pcideal-be/infra/dto"
 	"github.com/Luzin7/pcideal-be/internal/domain/repository"
+	"github.com/Luzin7/pcideal-be/internal/dto"
 	"github.com/Luzin7/pcideal-be/internal/errors"
 )
 
