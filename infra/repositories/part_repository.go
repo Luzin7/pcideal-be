@@ -4,10 +4,12 @@ import (
 	"context"
 	"log"
 
-	"github.com/Luzin7/pcideal-be/internal/core/models"
+	"github.com/Luzin7/pcideal-be/internal/domain/entity"
+	"github.com/Luzin7/pcideal-be/internal/domain/repository"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type PartRepository struct {
@@ -22,8 +24,7 @@ func NewPartRepository(client *mongo.Database) *PartRepository {
 	}
 }
 
-func (partRepository *PartRepository) CreatePart(part *models.Part) error {
-	ctx := context.TODO()
+func (partRepository *PartRepository) CreatePart(ctx context.Context, part *entity.Part) error {
 
 	_, err := partRepository.collection.InsertOne(ctx, part)
 
@@ -34,8 +35,7 @@ func (partRepository *PartRepository) CreatePart(part *models.Part) error {
 	return nil
 }
 
-func (partRepository *PartRepository) UpdatePart(partId string, part *models.Part) error {
-	ctx := context.TODO()
+func (partRepository *PartRepository) UpdatePart(ctx context.Context, partId string, part *entity.Part) error {
 	log.Printf("Updating part with ID: %s", partId)
 	objID, err := primitive.ObjectIDFromHex(partId)
 
@@ -65,8 +65,7 @@ func (partRepository *PartRepository) UpdatePart(partId string, part *models.Par
 	return nil
 }
 
-func (partRepository *PartRepository) GetAllParts() ([]*models.Part, error) {
-	ctx := context.TODO()
+func (partRepository *PartRepository) GetAllParts(ctx context.Context) ([]*entity.Part, error) {
 
 	cursor, err := partRepository.collection.Find(ctx, bson.M{})
 
@@ -76,16 +75,16 @@ func (partRepository *PartRepository) GetAllParts() ([]*models.Part, error) {
 
 	defer cursor.Close(ctx)
 
-	var parts []*models.Part
+	var parts []*entity.Part
 
 	for cursor.Next(ctx) {
-		var part models.Part
+		part := new(entity.Part)
 
-		if err := cursor.Decode(&part); err != nil {
+		if err := cursor.Decode(part); err != nil {
 			return nil, err
 		}
 
-		parts = append(parts, &part)
+		parts = append(parts, part)
 	}
 
 	if err := cursor.Err(); err != nil {
@@ -95,10 +94,9 @@ func (partRepository *PartRepository) GetAllParts() ([]*models.Part, error) {
 	return parts, nil
 }
 
-func (partRepository *PartRepository) GetPartByID(id string) (*models.Part, error) {
-	ctx := context.TODO()
+func (partRepository *PartRepository) GetPartByID(ctx context.Context, id string) (*entity.Part, error) {
 
-	var part models.Part
+	var part entity.Part
 
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -117,10 +115,9 @@ func (partRepository *PartRepository) GetPartByID(id string) (*models.Part, erro
 	return &part, nil
 }
 
-func (partRepository *PartRepository) GetPartByModel(model string) (*models.Part, error) {
-	ctx := context.TODO()
+func (partRepository *PartRepository) GetPartByModel(ctx context.Context, model string) (*entity.Part, error) {
 
-	var part models.Part
+	var part entity.Part
 
 	err := partRepository.collection.FindOne(ctx, bson.M{"model": model}).Decode(&part)
 
@@ -132,4 +129,62 @@ func (partRepository *PartRepository) GetPartByModel(model string) (*models.Part
 	}
 
 	return &part, nil
+}
+
+func (partRepository *PartRepository) FindPartByTypeAndBrandWithMaxPrice(ctx context.Context, args repository.FindPartByTypeAndBrandWithMaxPriceArgs) ([]*entity.Part, error) {
+	filter := bson.M{
+		"type":        args.PartType,
+		"price_cents": bson.M{"$lte": args.MaxPriceCents},
+	}
+
+	if args.Brand != "" {
+		filter["brand"] = bson.M{"$regex": args.Brand, "$options": "i"}
+	}
+	if args.PartType == "CPU" {
+		filter["specs.socket"] = bson.M{"$exists": true, "$ne": ""}
+	}
+	if args.PartType == "PSU" && args.MinPSUWatts > 0 {
+		filter["specs.wattage"] = bson.M{"$gte": args.MinPSUWatts}
+	}
+	if args.PartType == "MOBO" && args.Socket != "" {
+		filter["specs.socket"] = args.Socket
+	}
+
+	// Ordenar baseado no tipo de peça para otimizar a seleção
+	var sortField string
+	switch args.PartType {
+	case "PSU":
+		sortField = "specs.efficiency_rating"
+	case "MOBO":
+		sortField = "specs.tier_score"
+	default:
+		sortField = "specs.performance_score"
+	}
+
+	opts := options.Find().SetSort(bson.D{{Key: sortField, Value: -1}, {Key: "price_cents", Value: 1}})
+	cursor, err := partRepository.collection.Find(ctx, filter, opts)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer cursor.Close(ctx)
+
+	var parts []*entity.Part
+
+	for cursor.Next(ctx) {
+		part := new(entity.Part)
+
+		if err := cursor.Decode(part); err != nil {
+			return nil, err
+		}
+
+		parts = append(parts, part)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return parts, nil
 }

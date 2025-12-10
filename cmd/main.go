@@ -6,11 +6,11 @@ import (
 
 	"github.com/Luzin7/pcideal-be/infra/database"
 	"github.com/Luzin7/pcideal-be/infra/external"
+	partControllers "github.com/Luzin7/pcideal-be/infra/http/controllers/part"
+	"github.com/Luzin7/pcideal-be/infra/http/routes"
 	"github.com/Luzin7/pcideal-be/infra/repositories"
-	"github.com/Luzin7/pcideal-be/internal/domain/matching"
-	"github.com/Luzin7/pcideal-be/internal/http/controllers"
-	"github.com/Luzin7/pcideal-be/internal/http/routes"
-	"github.com/Luzin7/pcideal-be/internal/http/services"
+	"github.com/Luzin7/pcideal-be/internal/useCases/buildAttempt"
+	"github.com/Luzin7/pcideal-be/internal/useCases/part"
 	"github.com/joho/godotenv"
 )
 
@@ -24,9 +24,9 @@ func main() {
 	}
 
 	port := os.Getenv("PORT")
-    if port == "" {
-        port = "8080"
-    }
+	if port == "" {
+		port = "8080"
+	}
 
 	connectionString := os.Getenv("DATABASE_URL")
 	databaseName := os.Getenv("PCIDEAL_DB_NAME")
@@ -44,15 +44,39 @@ func main() {
 	partRepository := repositories.NewPartRepository(db)
 	buildAttemptRepository := repositories.NewBuildAttemptRepository(db)
 	scraperClient := external.NewScraperHTTPClient(os.Getenv("SCRAPER_API_URL"), os.Getenv("SCRAPER_API_KEY"))
-	partMatchingService := matching.NewPartMatchingService(db)
-	buildAttemptService := services.NewBuildAttemptService(buildAttemptRepository)
-	partService := services.NewPartService(partRepository, scraperClient, googleAiClient, partMatchingService)
-	partController := controllers.NewPartController(partService, buildAttemptService)
+	buildAttemptService := buildAttempt.NewBuildAttemptService(buildAttemptRepository)
 
-	router := routes.SetupRouter(partController)
+	updatePartUC := part.NewUpdatePartUseCase(partRepository, scraperClient)
+	updatePartsUC := part.NewUpdatePartsUseCase(partRepository, scraperClient)
+	getAllPartsUC := part.NewGetAllPartsUseCase(partRepository)
+	getPartByIDUC := part.NewGetPartByIDUseCase(partRepository, updatePartUC)
+
+	selectBestCPUUC := part.NewSelectBestCPUUseCase(partRepository)
+	selectBestGPUUC := part.NewSelectBestGPUUseCase(partRepository)
+	selectBestPSUUC := part.NewSelectBestPSUUseCase(partRepository)
+	selectBestRAMUC := part.NewSelectBestRAMUseCase(partRepository)
+	selectBestMOBOUC := part.NewSelectBestMOBOUseCase(partRepository)
+
+	generateBuildRecsUC := part.NewGenerateBuildRecommendationsUseCase(
+		partRepository,
+		scraperClient,
+		googleAiClient,
+		updatePartsUC,
+		selectBestCPUUC,
+		selectBestGPUUC,
+		selectBestPSUUC,
+		selectBestRAMUC,
+		selectBestMOBOUC,
+	)
+
+	getAllPartsController := partControllers.NewGetAllPartsController(getAllPartsUC)
+	getPartByIDController := partControllers.NewGetPartByIDController(getPartByIDUC)
+	getBuildRecsController := partControllers.NewGetBuildRecommendationsController(generateBuildRecsUC, buildAttemptService)
+
+	router := routes.SetupRouter(getAllPartsController, getPartByIDController, getBuildRecsController)
 
 	log.Printf("Servidor iniciando na porta %s...", port)
-    if err := router.Run(":" + port); err != nil {
-        log.Fatal("Erro ao subir o servidor:", err)
-    }
+	if err := router.Run(":" + port); err != nil {
+		log.Fatal("Erro ao subir o servidor:", err)
+	}
 }
