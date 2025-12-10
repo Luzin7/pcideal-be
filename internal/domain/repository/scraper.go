@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 
-	"github.com/Luzin7/pcideal-be/infra/dto"
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
+	"github.com/Luzin7/pcideal-be/internal/dto"
 )
 
 type ScraperClientRepository interface {
