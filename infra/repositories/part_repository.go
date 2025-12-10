@@ -138,13 +138,30 @@ func (partRepository *PartRepository) FindPartByTypeAndBrandWithMaxPrice(ctx con
 	}
 
 	if args.Brand != "" {
-		filter["model"] = bson.M{"$regex": args.Brand, "$options": "i"}
+		filter["brand"] = bson.M{"$regex": args.Brand, "$options": "i"}
+	}
+	if args.PartType == "CPU" {
+		filter["specs.socket"] = bson.M{"$exists": true, "$ne": ""}
 	}
 	if args.PartType == "PSU" && args.MinPSUWatts > 0 {
 		filter["specs.wattage"] = bson.M{"$gte": args.MinPSUWatts}
 	}
+	if args.PartType == "MOBO" && args.Socket != "" {
+		filter["specs.socket"] = args.Socket
+	}
 
-	opts := options.Find().SetSort(bson.D{{Key: "price_cents", Value: -1}})
+	// Ordenar baseado no tipo de peça para otimizar a seleção
+	var sortField string
+	switch args.PartType {
+	case "PSU":
+		sortField = "specs.efficiency_rating"
+	case "MOBO":
+		sortField = "specs.tier_score"
+	default:
+		sortField = "specs.performance_score"
+	}
+
+	opts := options.Find().SetSort(bson.D{{Key: sortField, Value: -1}, {Key: "price_cents", Value: 1}})
 	cursor, err := partRepository.collection.Find(ctx, filter, opts)
 
 	if err != nil {
