@@ -50,7 +50,24 @@ func main() {
 	updatePartsUC := part.NewUpdatePartsUseCase(partRepository, scraperClient)
 	getAllPartsUC := part.NewGetAllPartsUseCase(partRepository)
 	getPartByIDUC := part.NewGetPartByIDUseCase(partRepository, updatePartUC)
-	generateBuildRecsUC := part.NewGenerateBuildRecommendationsUseCase(partRepository, scraperClient, googleAiClient, updatePartsUC)
+
+	selectBestCPUUC := part.NewSelectBestCPUUseCase(partRepository)
+	selectBestGPUUC := part.NewSelectBestGPUUseCase(partRepository)
+	selectBestPSUUC := part.NewSelectBestPSUUseCase(partRepository)
+	selectBestRAMUC := part.NewSelectBestRAMUseCase(partRepository)
+	selectBestMOBOUC := part.NewSelectBestMOBOUseCase(partRepository)
+
+	generateBuildRecsUC := part.NewGenerateBuildRecommendationsUseCase(
+		partRepository,
+		scraperClient,
+		googleAiClient,
+		updatePartsUC,
+		selectBestCPUUC,
+		selectBestGPUUC,
+		selectBestPSUUC,
+		selectBestRAMUC,
+		selectBestMOBOUC,
+	)
 
 	getAllPartsController := partControllers.NewGetAllPartsController(getAllPartsUC)
 	getPartByIDController := partControllers.NewGetPartByIDController(getPartByIDUC)
