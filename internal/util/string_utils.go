@@ -55,3 +55,11 @@ func Levenshtein(a, b string) int {
 
 	return prev[len(a)]
 }
+
+func ConvertToCents(price int64) int64 {
+	return price * 100
+}
+
+func ConvertCentsToReal(price int64) int64 {
+	return price / 100
+}
