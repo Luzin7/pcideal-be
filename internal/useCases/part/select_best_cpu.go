@@ -20,33 +20,13 @@ func NewSelectBestCPUUseCase(partRepository repository.PartRepository) *SelectBe
 }
 
 type SelectBestCPUArgs struct {
-	BrandPreference string
-	MaxPriceCents   int64
+	cpus []*entity.Part
 }
 
-func (uc *SelectBestCPUUseCase) Execute(ctx context.Context, cpuPreference SelectBestCPUArgs) (entity.Part, *errors.ErrService) {
-	log.Printf("[SelectBestCPU] Filtering - Brand: %s, MaxPrice: %d", cpuPreference.BrandPreference, cpuPreference.MaxPriceCents)
-
-	cpus, err := uc.partRepository.FindPartByTypeAndBrandWithMaxPrice(ctx, repository.FindPartByTypeAndBrandWithMaxPriceArgs{
-		PartType:      "CPU",
-		Brand:         cpuPreference.BrandPreference,
-		MaxPriceCents: cpuPreference.MaxPriceCents,
-	})
-	if err != nil {
-		log.Printf("[SelectBestCPU] Error querying database: %v", err)
-		return entity.Part{}, errors.New("Failed to select best CPU", 500)
-	}
-
-	log.Printf("[SelectBestCPU] Found %d CPUs", len(cpus))
-
-	if len(cpus) == 0 {
-		log.Printf("[SelectBestCPU] No CPUs found matching criteria")
-		return entity.Part{}, errors.New("No CPU found matching the criteria", 404)
-	}
-
+func (uc *SelectBestCPUUseCase) Execute(ctx context.Context, args SelectBestCPUArgs) (entity.Part, *errors.ErrService) {
 	var bestCPU entity.Part
 
-	for i, cpu := range cpus {
+	for i, cpu := range args.cpus {
 		if i == 0 {
 			bestCPU = *cpu
 			continue
