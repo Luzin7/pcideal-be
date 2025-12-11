@@ -20,33 +20,13 @@ func NewSelectBestGPUUseCase(partRepository repository.PartRepository) *SelectBe
 }
 
 type SelectBestGPUArgs struct {
-	BrandPreference string
-	MaxPriceCents   int64
+	gpus []*entity.Part
 }
 
-func (uc *SelectBestGPUUseCase) Execute(ctx context.Context, gpuPreference SelectBestGPUArgs) (entity.Part, *errors.ErrService) {
-	log.Printf("[SelectBestGPU] Filtering - Brand: %s, MaxPrice: %d", gpuPreference.BrandPreference, gpuPreference.MaxPriceCents)
-
-	gpus, err := uc.partRepository.FindPartByTypeAndBrandWithMaxPrice(ctx, repository.FindPartByTypeAndBrandWithMaxPriceArgs{
-		PartType:      "GPU",
-		Brand:         gpuPreference.BrandPreference,
-		MaxPriceCents: gpuPreference.MaxPriceCents,
-	})
-	if err != nil {
-		log.Printf("[SelectBestGPU] Error querying database: %v", err)
-		return entity.Part{}, errors.New("Failed to select best GPU", 500)
-	}
-
-	log.Printf("[SelectBestGPU] Found %d GPUs", len(gpus))
-
-	if len(gpus) == 0 {
-		log.Printf("[SelectBestGPU] No GPUs found matching criteria")
-		return entity.Part{}, errors.New("No GPU found matching the criteria", 404)
-	}
-
+func (uc *SelectBestGPUUseCase) Execute(ctx context.Context, args SelectBestGPUArgs) (entity.Part, *errors.ErrService) {
 	var bestGPU entity.Part
 
-	for i, gpu := range gpus {
+	for i, gpu := range args.gpus {
 		if i == 0 {
 			bestGPU = *gpu
 			continue
