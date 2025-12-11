@@ -4,19 +4,18 @@ import (
 	"context"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
-	"github.com/Luzin7/pcideal-be/internal/domain/repository"
 	"github.com/Luzin7/pcideal-be/internal/dto"
 	"github.com/Luzin7/pcideal-be/internal/errors"
 	"github.com/Luzin7/pcideal-be/internal/util"
 )
 
 type SelectBestCPUUseCase struct {
-	partRepository repository.PartRepository
+	UpdatePartsUseCase *UpdatePartsUseCase
 }
 
-func NewSelectBestCPUUseCase(partRepository repository.PartRepository) *SelectBestCPUUseCase {
+func NewSelectBestCPUUseCase(updatePartsUseCase *UpdatePartsUseCase) *SelectBestCPUUseCase {
 	return &SelectBestCPUUseCase{
-		partRepository: partRepository,
+		UpdatePartsUseCase: updatePartsUseCase,
 	}
 }
 
@@ -57,7 +56,7 @@ func (uc *SelectBestCPUUseCase) Execute(ctx context.Context, args SelectBestCPUA
 
 	if len(partsToUpdate) > 0 {
 		go func() {
-			uc.partRepository.UpdateParts(context.Background(), partsToUpdate, "kabum")
+			uc.UpdatePartsUseCase.Execute(context.Background(), partsToUpdate, "kabum")
 		}()
 	}
 
