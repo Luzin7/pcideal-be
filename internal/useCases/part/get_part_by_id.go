@@ -2,11 +2,11 @@ package part
 
 import (
 	"context"
-	"time"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
 	"github.com/Luzin7/pcideal-be/internal/domain/repository"
 	"github.com/Luzin7/pcideal-be/internal/errors"
+	"github.com/Luzin7/pcideal-be/internal/util"
 )
 
 type GetPartByIDUseCase struct {
@@ -33,16 +33,9 @@ func (uc *GetPartByIDUseCase) Execute(id string) (*entity.Part, *errors.ErrServi
 		return nil, errors.ErrNotFound("part")
 	}
 
-	if uc.needToUpdate(part) {
+	if util.PartNeedToUpdate(part) {
 		uc.updatePartUC.Execute(part.ID.Hex())
 	}
 
 	return part, nil
-}
-
-func (uc *GetPartByIDUseCase) needToUpdate(part *entity.Part) bool {
-	if part != nil && time.Since(part.UpdatedAt) >= 2*time.Hour {
-		return true
-	}
-	return false
 }
