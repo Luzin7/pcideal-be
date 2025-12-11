@@ -20,35 +20,13 @@ func NewSelectBestPSUUseCase(partRepository repository.PartRepository) *SelectBe
 }
 
 type SelectBestPSUArgs struct {
-	BrandPreference string
-	MaxPriceCents   int64
-	MinPSUWatts     int16
+	psus []*entity.Part
 }
 
-func (uc *SelectBestPSUUseCase) Execute(ctx context.Context, psuPreference SelectBestPSUArgs) (entity.Part, *errors.ErrService) {
-	log.Printf("[SelectBestPSU] Filtering - Brand: %s, MaxPrice: %d, MinWatts: %d", psuPreference.BrandPreference, psuPreference.MaxPriceCents, psuPreference.MinPSUWatts)
-
-	psus, err := uc.partRepository.FindPartByTypeAndBrandWithMaxPrice(ctx, repository.FindPartByTypeAndBrandWithMaxPriceArgs{
-		PartType:      "PSU",
-		Brand:         psuPreference.BrandPreference,
-		MaxPriceCents: psuPreference.MaxPriceCents,
-		MinPSUWatts:   psuPreference.MinPSUWatts,
-	})
-	if err != nil {
-		log.Printf("[SelectBestPSU] Error querying database: %v", err)
-		return entity.Part{}, errors.New("Failed to select best PSU", 500)
-	}
-
-	log.Printf("[SelectBestPSU] Found %d PSUs", len(psus))
-
-	if len(psus) == 0 {
-		log.Printf("[SelectBestPSU] No PSUs found matching criteria")
-		return entity.Part{}, errors.New("No PSU found matching the criteria", 404)
-	}
-
+func (uc *SelectBestPSUUseCase) Execute(ctx context.Context, args SelectBestPSUArgs) (entity.Part, *errors.ErrService) {
 	var bestPSU entity.Part
 
-	for i, psu := range psus {
+	for i, psu := range args.psus {
 		if i == 0 {
 			bestPSU = *psu
 			continue
