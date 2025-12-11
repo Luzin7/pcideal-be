@@ -2,22 +2,20 @@ package part
 
 import (
 	"context"
-	"log"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
-	"github.com/Luzin7/pcideal-be/internal/domain/repository"
 	"github.com/Luzin7/pcideal-be/internal/dto"
 	"github.com/Luzin7/pcideal-be/internal/errors"
 	"github.com/Luzin7/pcideal-be/internal/util"
 )
 
 type SelectBestRAMUseCase struct {
-	partRepository repository.PartRepository
+	UpdatePartsUseCase *UpdatePartsUseCase
 }
 
-func NewSelectBestRAMUseCase(partRepository repository.PartRepository) *SelectBestRAMUseCase {
+func NewSelectBestRAMUseCase(updatePartsUseCase *UpdatePartsUseCase) *SelectBestRAMUseCase {
 	return &SelectBestRAMUseCase{
-		partRepository: partRepository,
+		UpdatePartsUseCase: updatePartsUseCase,
 	}
 }
 
@@ -70,11 +68,9 @@ func (uc *SelectBestRAMUseCase) Execute(ctx context.Context, args SelectBestRAMA
 
 	if len(partsToUpdate) > 0 {
 		go func() {
-			uc.partRepository.UpdateParts(context.Background(), partsToUpdate, "kabum")
+			uc.UpdatePartsUseCase.Execute(context.Background(), partsToUpdate, "kabum")
 		}()
 	}
-
-	log.Printf("[SelectBestRAM] Selected: %s (Brand: %s, Price: %d, Score: %d, CAS: %d)", bestRAM.Model, bestRAM.Brand, bestRAM.PriceCents, bestRAM.Specs.PerformanceScore, bestRAM.Specs.CasLatency)
 
 	return bestRAM, nil
 }
