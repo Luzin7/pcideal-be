@@ -2,22 +2,20 @@ package part
 
 import (
 	"context"
-	"log"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
-	"github.com/Luzin7/pcideal-be/internal/domain/repository"
 	"github.com/Luzin7/pcideal-be/internal/dto"
 	"github.com/Luzin7/pcideal-be/internal/errors"
 	"github.com/Luzin7/pcideal-be/internal/util"
 )
 
 type SelectBestMOBOUseCase struct {
-	partRepository repository.PartRepository
+	UpdatePartsUseCase *UpdatePartsUseCase
 }
 
-func NewSelectBestMOBOUseCase(partRepository repository.PartRepository) *SelectBestMOBOUseCase {
+func NewSelectBestMOBOUseCase(updatePartsUseCase *UpdatePartsUseCase) *SelectBestMOBOUseCase {
 	return &SelectBestMOBOUseCase{
-		partRepository: partRepository,
+		UpdatePartsUseCase: updatePartsUseCase,
 	}
 }
 
@@ -58,11 +56,9 @@ func (uc *SelectBestMOBOUseCase) Execute(ctx context.Context, args SelectBestMOB
 
 	if len(partsToUpdate) > 0 {
 		go func() {
-			uc.partRepository.UpdateParts(context.Background(), partsToUpdate, "kabum")
+			uc.UpdatePartsUseCase.Execute(context.Background(), partsToUpdate, "kabum")
 		}()
 	}
-
-	log.Printf("[SelectBestMOBO] Selected: %s (Brand: %s, Price: %d, Socket: %s, TierScore: %d)", bestMOBO.Model, bestMOBO.Brand, bestMOBO.PriceCents, bestMOBO.Specs.Socket, bestMOBO.Specs.TierScore)
 
 	return bestMOBO, nil
 }
