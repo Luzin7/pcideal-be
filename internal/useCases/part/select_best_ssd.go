@@ -2,20 +2,20 @@ package part
 
 import (
 	"context"
-	"log"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
-	"github.com/Luzin7/pcideal-be/internal/domain/repository"
+	"github.com/Luzin7/pcideal-be/internal/dto"
 	"github.com/Luzin7/pcideal-be/internal/errors"
+	"github.com/Luzin7/pcideal-be/internal/util"
 )
 
 type SelectBestSSDUseCase struct {
-	partRepository repository.PartRepository
+	UpdatePartsUseCase *UpdatePartsUseCase
 }
 
-func NewSelectBestSSDUseCase(partRepository repository.PartRepository) *SelectBestSSDUseCase {
+func NewSelectBestSSDUseCase(updatePartsUseCase *UpdatePartsUseCase) *SelectBestSSDUseCase {
 	return &SelectBestSSDUseCase{
-		partRepository: partRepository,
+		UpdatePartsUseCase: updatePartsUseCase,
 	}
 }
 
@@ -25,11 +25,19 @@ type SelectBestSSDArgs struct {
 
 func (uc *SelectBestSSDUseCase) Execute(ctx context.Context, args SelectBestSSDArgs) (entity.Part, *errors.ErrService) {
 	var bestSSD entity.Part
+	var partsToUpdate []dto.ProductLinkToUpdate
 
 	for i, ssd := range args.ssds {
 		if i == 0 {
 			bestSSD = *ssd
 			continue
+		}
+
+		if util.PartNeedToUpdate(ssd) {
+			partsToUpdate = append(partsToUpdate, dto.ProductLinkToUpdate{
+				ID:  ssd.ID.Hex(),
+				Url: ssd.URL,
+			})
 		}
 
 		if ssd.Specs.EfficiencyRating > bestSSD.Specs.EfficiencyRating {
@@ -46,7 +54,11 @@ func (uc *SelectBestSSDUseCase) Execute(ctx context.Context, args SelectBestSSDA
 		}
 	}
 
-	log.Printf("[SelectBestSSD] Selected: %s (Brand: %s, Price: %d, Wattage: %d, Efficiency: %d)", bestSSD.Model, bestSSD.Brand, bestSSD.PriceCents, bestSSD.Specs.Wattage, bestSSD.Specs.EfficiencyRating)
+	if len(partsToUpdate) > 0 {
+		go func() {
+			uc.UpdatePartsUseCase.Execute(context.Background(), partsToUpdate, "kabum")
+		}()
+	}
 
 	return bestSSD, nil
 }
