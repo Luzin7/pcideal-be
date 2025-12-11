@@ -20,35 +20,13 @@ func NewSelectBestMOBOUseCase(partRepository repository.PartRepository) *SelectB
 }
 
 type SelectBestMOBOArgs struct {
-	Brand         string
-	Socket        string
-	MaxPriceCents int64
+	mobos []*entity.Part
 }
 
-func (uc *SelectBestMOBOUseCase) Execute(ctx context.Context, moboPreference SelectBestMOBOArgs) (entity.Part, *errors.ErrService) {
-	log.Printf("[SelectBestMOBO] Filtering - Socket: %s, MaxPrice: %d", moboPreference.Socket, moboPreference.MaxPriceCents)
-
-	mobos, err := uc.partRepository.FindPartByTypeAndBrandWithMaxPrice(ctx, repository.FindPartByTypeAndBrandWithMaxPriceArgs{
-		PartType:      "MOTHERBOARD",
-		Brand:         moboPreference.Brand,
-		Socket:        moboPreference.Socket,
-		MaxPriceCents: moboPreference.MaxPriceCents,
-	})
-	if err != nil {
-		log.Printf("[SelectBestMOBO] Error querying database: %v", err)
-		return entity.Part{}, errors.New("Failed to select best MOBO", 500)
-	}
-
-	log.Printf("[SelectBestMOBO] Found %d MOBOs", len(mobos))
-
-	if len(mobos) == 0 {
-		log.Printf("[SelectBestMOBO] No MOBOs found matching criteria")
-		return entity.Part{}, errors.New("No MOBO found matching the criteria", 404)
-	}
-
+func (uc *SelectBestMOBOUseCase) Execute(ctx context.Context, args SelectBestMOBOArgs) (entity.Part, *errors.ErrService) {
 	var bestMOBO entity.Part
 
-	for i, mobo := range mobos {
+	for i, mobo := range args.mobos {
 		if i == 0 {
 			bestMOBO = *mobo
 			continue
