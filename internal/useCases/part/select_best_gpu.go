@@ -2,22 +2,20 @@ package part
 
 import (
 	"context"
-	"log"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
-	"github.com/Luzin7/pcideal-be/internal/domain/repository"
 	"github.com/Luzin7/pcideal-be/internal/dto"
 	"github.com/Luzin7/pcideal-be/internal/errors"
 	"github.com/Luzin7/pcideal-be/internal/util"
 )
 
 type SelectBestGPUUseCase struct {
-	partRepository repository.PartRepository
+	UpdatePartsUseCase *UpdatePartsUseCase
 }
 
-func NewSelectBestGPUUseCase(partRepository repository.PartRepository) *SelectBestGPUUseCase {
+func NewSelectBestGPUUseCase(updatePartsUseCase *UpdatePartsUseCase) *SelectBestGPUUseCase {
 	return &SelectBestGPUUseCase{
-		partRepository: partRepository,
+		UpdatePartsUseCase: updatePartsUseCase,
 	}
 }
 
@@ -58,11 +56,9 @@ func (uc *SelectBestGPUUseCase) Execute(ctx context.Context, args SelectBestGPUA
 
 	if len(partsToUpdate) > 0 {
 		go func() {
-			uc.partRepository.UpdateParts(context.Background(), partsToUpdate, "kabum")
+			uc.UpdatePartsUseCase.Execute(context.Background(), partsToUpdate, "kabum")
 		}()
 	}
-
-	log.Printf("[SelectBestGPU] Selected: %s (Brand: %s, Price: %d, Score: %d, MinPSU: %d)", bestGPU.Model, bestGPU.Brand, bestGPU.PriceCents, bestGPU.Specs.PerformanceScore, bestGPU.Specs.MinPSUWatts)
 
 	return bestGPU, nil
 }
