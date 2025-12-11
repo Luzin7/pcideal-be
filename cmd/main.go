@@ -56,6 +56,7 @@ func main() {
 	selectBestPSUUC := part.NewSelectBestPSUUseCase(partRepository)
 	selectBestRAMUC := part.NewSelectBestRAMUseCase(partRepository)
 	selectBestMOBOUC := part.NewSelectBestMOBOUseCase(partRepository)
+	selectBestSSDUC := part.NewSelectBestSSDUseCase(partRepository)
 
 	generateBuildRecsUC := part.NewGenerateBuildRecommendationsUseCase(
 		partRepository,
@@ -67,6 +68,7 @@ func main() {
 		selectBestPSUUC,
 		selectBestRAMUC,
 		selectBestMOBOUC,
+		selectBestSSDUC,
 	)
 
 	getAllPartsController := partControllers.NewGetAllPartsController(getAllPartsUC)
