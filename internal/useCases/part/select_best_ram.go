@@ -20,33 +20,13 @@ func NewSelectBestRAMUseCase(partRepository repository.PartRepository) *SelectBe
 }
 
 type SelectBestRAMArgs struct {
-	BrandPreference string
-	MaxPriceCents   int64
+	rams []*entity.Part
 }
 
-func (uc *SelectBestRAMUseCase) Execute(ctx context.Context, ramPreference SelectBestRAMArgs) (entity.Part, *errors.ErrService) {
-	log.Printf("[SelectBestRAM] Filtering - Brand: %s, MaxPrice: %d", ramPreference.BrandPreference, ramPreference.MaxPriceCents)
-
-	rams, err := uc.partRepository.FindPartByTypeAndBrandWithMaxPrice(ctx, repository.FindPartByTypeAndBrandWithMaxPriceArgs{
-		PartType:      "RAM",
-		Brand:         ramPreference.BrandPreference,
-		MaxPriceCents: ramPreference.MaxPriceCents,
-	})
-	if err != nil {
-		log.Printf("[SelectBestRAM] Error querying database: %v", err)
-		return entity.Part{}, errors.New("Failed to select best RAM", 500)
-	}
-
-	log.Printf("[SelectBestRAM] Found %d RAMs", len(rams))
-
-	if len(rams) == 0 {
-		log.Printf("[SelectBestRAM] No RAMs found matching criteria")
-		return entity.Part{}, errors.New("No RAM found matching the criteria", 404)
-	}
-
+func (uc *SelectBestRAMUseCase) Execute(ctx context.Context, args SelectBestRAMArgs) (entity.Part, *errors.ErrService) {
 	var bestRAM entity.Part
 
-	for i, ram := range rams {
+	for i, ram := range args.rams {
 		if ram.Specs.CasLatency <= 0 {
 			continue
 		}
