@@ -137,7 +137,7 @@ func (partRepository *PartRepository) FindPartByTypeAndBrandWithMaxPrice(ctx con
 		"price_cents": bson.M{"$lte": args.MaxPriceCents},
 	}
 
-	if args.Brand != "" {
+	if args.Brand != "" && args.Brand != "no-preference" {
 		filter["brand"] = bson.M{"$regex": args.Brand, "$options": "i"}
 	}
 	if args.PartType == "CPU" {
@@ -150,7 +150,6 @@ func (partRepository *PartRepository) FindPartByTypeAndBrandWithMaxPrice(ctx con
 		filter["specs.socket"] = args.Socket
 	}
 
-	// Ordenar baseado no tipo de peça para otimizar a seleção
 	var sortField string
 	switch args.PartType {
 	case "PSU":
