@@ -68,7 +68,7 @@ func (uc *GenerateBuildRecommendationsUseCase) Execute(ctx context.Context, args
 	var recommendedBuilds []presenters.RecommendationBuild
 
 	for _, config := range buildConfigs {
-		var finalBuild presenters.RecommendationBuild
+		var finalBuild *presenters.RecommendationBuild
 
 		buildBudgetCents := int64(float64(budgetCents) * config.multiplier)
 
@@ -184,7 +184,7 @@ func (uc *GenerateBuildRecommendationsUseCase) Execute(ctx context.Context, args
 			return nil, errors.ErrBuildAttemptNotFound()
 		}
 
-		finalBuild = presenters.RecommendationBuild{
+		finalBuild = &presenters.RecommendationBuild{
 			BuildType: config.buildType,
 			Parts: presenters.BuildParts{
 				CPU:            &selectedCpu,
@@ -198,7 +198,14 @@ func (uc *GenerateBuildRecommendationsUseCase) Execute(ctx context.Context, args
 			BuildValue: selectedCpu.PriceCents + selectedGpu.PriceCents + selectedMobo.PriceCents + selectedPsu.PriceCents + selectedRam.PriceCents + selectedSSD.PriceCents,
 		}
 
-		recommendedBuilds = append(recommendedBuilds, finalBuild)
+		summary, err := uc.googleAIClient.GeneratePcBuildAnalysis(ctx, finalBuild)
+		if err != nil {
+			log.Printf("[GeneratePcBuildAnalysis] Error generating AI analysis for build type %s: %v", config.buildType, err)
+			summary = "Análise indisponível no momento."
+		}
+		finalBuild.Summary = summary
+
+		recommendedBuilds = append(recommendedBuilds, *finalBuild)
 
 	}
 
