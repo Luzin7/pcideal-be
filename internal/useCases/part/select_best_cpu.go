@@ -2,11 +2,12 @@ package part
 
 import (
 	"context"
-	"log"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
 	"github.com/Luzin7/pcideal-be/internal/domain/repository"
+	"github.com/Luzin7/pcideal-be/internal/dto"
 	"github.com/Luzin7/pcideal-be/internal/errors"
+	"github.com/Luzin7/pcideal-be/internal/util"
 )
 
 type SelectBestCPUUseCase struct {
@@ -25,11 +26,19 @@ type SelectBestCPUArgs struct {
 
 func (uc *SelectBestCPUUseCase) Execute(ctx context.Context, args SelectBestCPUArgs) (entity.Part, *errors.ErrService) {
 	var bestCPU entity.Part
+	var partsToUpdate []dto.ProductLinkToUpdate
 
 	for i, cpu := range args.cpus {
 		if i == 0 {
 			bestCPU = *cpu
 			continue
+		}
+
+		if util.PartNeedToUpdate(cpu) {
+			partsToUpdate = append(partsToUpdate, dto.ProductLinkToUpdate{
+				ID:  cpu.ID.Hex(),
+				Url: cpu.URL,
+			})
 		}
 
 		if cpu.Specs.PerformanceScore > bestCPU.Specs.PerformanceScore {
@@ -46,7 +55,11 @@ func (uc *SelectBestCPUUseCase) Execute(ctx context.Context, args SelectBestCPUA
 		}
 	}
 
-	log.Printf("[SelectBestCPU] Selected: %s (Brand: %s, Price: %d, Score: %d, Socket: %s)", bestCPU.Model, bestCPU.Brand, bestCPU.PriceCents, bestCPU.Specs.PerformanceScore, bestCPU.Specs.Socket)
+	if len(partsToUpdate) > 0 {
+		go func() {
+			uc.partRepository.UpdateParts(context.Background(), partsToUpdate, "kabum")
+		}()
+	}
 
 	return bestCPU, nil
 }
