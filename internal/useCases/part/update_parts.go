@@ -22,7 +22,7 @@ func NewUpdatePartsUseCase(partRepository repository.PartRepository, scraperClie
 	}
 }
 
-func (uc *UpdatePartsUseCase) Execute(ctx context.Context, urls []*dto.ProductLinkToUpdate, store string) *errors.ErrService {
+func (uc *UpdatePartsUseCase) Execute(ctx context.Context, urls []dto.ProductLinkToUpdate, store string) *errors.ErrService {
 	if len(urls) <= 0 {
 		return errors.New("urls cannot be empty", 400)
 	}
