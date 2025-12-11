@@ -61,7 +61,6 @@ func (c *GoogleAIClient) getBasePrompt(ctx context.Context, category string) (st
 }
 
 func (c *GoogleAIClient) GeneratePcBuildAnalysis(ctx context.Context, build *presenters.RecommendationBuild) (string, error) {
-	// Validar build
 	if build == nil {
 		return "", fmt.Errorf("build is nil")
 	}
@@ -91,9 +90,7 @@ func (c *GoogleAIClient) GeneratePcBuildAnalysis(ctx context.Context, build *pre
 - GPU: %s %s (%dGB VRAM, Performance: %d/10)
 - RAM: %dGB @ %dMHz
 - Storage: %dGB SSD
-- PSU: %dW 80+ %s
-
-Provide a brief, user-friendly summary in Portuguese (PT-BR) explaining what this PC can do.`,
+- PSU: %dW 80+ %s`,
 		basePrompt,
 		build.BuildType,
 		budget,
@@ -119,11 +116,10 @@ Provide a brief, user-friendly summary in Portuguese (PT-BR) explaining what thi
 	)
 
 	config := &genai.GenerateContentConfig{
-		Temperature:     genai.Ptr(float32(0.7)),
-		MaxOutputTokens: 500,
+		Temperature: genai.Ptr(float32(0.7)),
 	}
 
-	resp, err := c.Client.Models.GenerateContent(ctx, "gemini-2.0-flash", []*genai.Content{
+	resp, err := c.Client.Models.GenerateContent(ctx, "gemini-2.5-flash", []*genai.Content{
 		{
 			Role: "user",
 			Parts: []*genai.Part{
