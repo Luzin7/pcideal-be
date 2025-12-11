@@ -2,22 +2,20 @@ package part
 
 import (
 	"context"
-	"log"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
-	"github.com/Luzin7/pcideal-be/internal/domain/repository"
 	"github.com/Luzin7/pcideal-be/internal/dto"
 	"github.com/Luzin7/pcideal-be/internal/errors"
 	"github.com/Luzin7/pcideal-be/internal/util"
 )
 
 type SelectBestPSUUseCase struct {
-	partRepository repository.PartRepository
+	UpdatePartsUseCase *UpdatePartsUseCase
 }
 
-func NewSelectBestPSUUseCase(partRepository repository.PartRepository) *SelectBestPSUUseCase {
+func NewSelectBestPSUUseCase(updatePartsUseCase *UpdatePartsUseCase) *SelectBestPSUUseCase {
 	return &SelectBestPSUUseCase{
-		partRepository: partRepository,
+		UpdatePartsUseCase: updatePartsUseCase,
 	}
 }
 
@@ -58,11 +56,9 @@ func (uc *SelectBestPSUUseCase) Execute(ctx context.Context, args SelectBestPSUA
 
 	if len(partsToUpdate) > 0 {
 		go func() {
-			uc.partRepository.UpdateParts(context.Background(), partsToUpdate, "kabum")
+			uc.UpdatePartsUseCase.Execute(context.Background(), partsToUpdate, "kabum")
 		}()
 	}
-
-	log.Printf("[SelectBestPSU] Selected: %s (Brand: %s, Price: %d, Wattage: %d, Efficiency: %d)", bestPSU.Model, bestPSU.Brand, bestPSU.PriceCents, bestPSU.Specs.Wattage, bestPSU.Specs.EfficiencyRating)
 
 	return bestPSU, nil
 }
