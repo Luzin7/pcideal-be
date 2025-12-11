@@ -86,7 +86,7 @@ func (s *ScraperHTTPClient) ScrapeProduct(ctx context.Context, productLink strin
 	return &part, nil
 }
 
-func (s *ScraperHTTPClient) UpdateProducts(ctx context.Context, links []*dto.ProductLinkToUpdate, storeName string) ([]*dto.PartWithID, error) {
+func (s *ScraperHTTPClient) UpdateProducts(ctx context.Context, links []dto.ProductLinkToUpdate, storeName string) ([]*dto.PartWithID, error) {
 	jsonBody, err := json.Marshal(links)
 	if err != nil {
 		return nil, err
