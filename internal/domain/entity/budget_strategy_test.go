@@ -6,10 +6,10 @@ import (
 
 func TestGetStrategy_Gaming(t *testing.T) {
 	tests := []struct {
-		name           string
-		budgetCents    int64
-		expectedType   string
-		expectedName   string
+		name         string
+		budgetCents  int64
+		expectedType string
+		expectedName string
 	}{
 		{
 			name:         "gaming low budget (below 3500 reais)",
@@ -55,10 +55,10 @@ func TestGetStrategy_Gaming(t *testing.T) {
 
 func TestGetStrategy_Work(t *testing.T) {
 	tests := []struct {
-		name           string
-		budgetCents    int64
-		expectedType   string
-		expectedName   string
+		name         string
+		budgetCents  int64
+		expectedType string
+		expectedName string
 	}{
 		{
 			name:         "work low budget (below 3500 reais)",
