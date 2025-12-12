@@ -2,54 +2,42 @@ package part
 
 import (
 	"context"
-	"log"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
-	"github.com/Luzin7/pcideal-be/internal/domain/repository"
+	"github.com/Luzin7/pcideal-be/internal/dto"
 	"github.com/Luzin7/pcideal-be/internal/errors"
+	"github.com/Luzin7/pcideal-be/internal/util"
 )
 
 type SelectBestCPUUseCase struct {
-	partRepository repository.PartRepository
+	UpdatePartsUseCase *UpdatePartsUseCase
 }
 
-func NewSelectBestCPUUseCase(partRepository repository.PartRepository) *SelectBestCPUUseCase {
+func NewSelectBestCPUUseCase(updatePartsUseCase *UpdatePartsUseCase) *SelectBestCPUUseCase {
 	return &SelectBestCPUUseCase{
-		partRepository: partRepository,
+		UpdatePartsUseCase: updatePartsUseCase,
 	}
 }
 
 type SelectBestCPUArgs struct {
-	BrandPreference string
-	MaxPriceCents   int64
+	cpus []*entity.Part
 }
 
-func (uc *SelectBestCPUUseCase) Execute(ctx context.Context, cpuPreference SelectBestCPUArgs) (entity.Part, *errors.ErrService) {
-	log.Printf("[SelectBestCPU] Filtering - Brand: %s, MaxPrice: %d", cpuPreference.BrandPreference, cpuPreference.MaxPriceCents)
-
-	cpus, err := uc.partRepository.FindPartByTypeAndBrandWithMaxPrice(ctx, repository.FindPartByTypeAndBrandWithMaxPriceArgs{
-		PartType:      "CPU",
-		Brand:         cpuPreference.BrandPreference,
-		MaxPriceCents: cpuPreference.MaxPriceCents,
-	})
-	if err != nil {
-		log.Printf("[SelectBestCPU] Error querying database: %v", err)
-		return entity.Part{}, errors.New("Failed to select best CPU", 500)
-	}
-
-	log.Printf("[SelectBestCPU] Found %d CPUs", len(cpus))
-
-	if len(cpus) == 0 {
-		log.Printf("[SelectBestCPU] No CPUs found matching criteria")
-		return entity.Part{}, errors.New("No CPU found matching the criteria", 404)
-	}
-
+func (uc *SelectBestCPUUseCase) Execute(ctx context.Context, args SelectBestCPUArgs) (entity.Part, *errors.ErrService) {
 	var bestCPU entity.Part
+	var partsToUpdate []dto.ProductLinkToUpdate
 
-	for i, cpu := range cpus {
+	for i, cpu := range args.cpus {
 		if i == 0 {
 			bestCPU = *cpu
 			continue
+		}
+
+		if util.PartNeedToUpdate(cpu) {
+			partsToUpdate = append(partsToUpdate, dto.ProductLinkToUpdate{
+				ID:  cpu.ID.Hex(),
+				Url: cpu.URL,
+			})
 		}
 
 		if cpu.Specs.PerformanceScore > bestCPU.Specs.PerformanceScore {
@@ -66,7 +54,11 @@ func (uc *SelectBestCPUUseCase) Execute(ctx context.Context, cpuPreference Selec
 		}
 	}
 
-	log.Printf("[SelectBestCPU] Selected: %s (Brand: %s, Price: %d, Score: %d, Socket: %s)", bestCPU.Model, bestCPU.Brand, bestCPU.PriceCents, bestCPU.Specs.PerformanceScore, bestCPU.Specs.Socket)
+	if len(partsToUpdate) > 0 {
+		go func() {
+			uc.UpdatePartsUseCase.Execute(context.Background(), partsToUpdate, "kabum")
+		}()
+	}
 
 	return bestCPU, nil
 }

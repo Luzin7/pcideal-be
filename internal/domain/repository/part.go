@@ -12,6 +12,7 @@ type FindPartByTypeAndBrandWithMaxPriceArgs struct {
 	MaxPriceCents int64
 	MinPSUWatts   int16
 	Socket        string
+	MemoryType    string
 }
 
 type PartRepository interface {

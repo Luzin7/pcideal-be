@@ -3,10 +3,8 @@ package external
 import (
 	"context"
 	"fmt"
-	"strings"
 
-	"github.com/Luzin7/pcideal-be/internal/domain/entity"
-	"go.mongodb.org/mongo-driver/bson"
+	"github.com/Luzin7/pcideal-be/infra/http/presenters"
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/genai"
 )
@@ -53,142 +51,112 @@ func NewGoogleAIClient(APIKey string, db *mongo.Database) (*GoogleAIClient, erro
 	}, nil
 }
 
-var allowedCPUPreferences = []string{"amd", "intel"}
-var allowedGPUPreferences = []string{"nvidia", "amd"}
-
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if strings.EqualFold(s, item) {
-			return true
-		}
-	}
-	return false
-}
-
-func sanitizeInput(input string) string {
-	input = strings.TrimSpace(input)
-	input = strings.ReplaceAll(input, "\"", "")
-	input = strings.ReplaceAll(input, "'", "")
-
-	if len(input) > 200 {
-		input = input[:200]
-	}
-
-	return input
-}
-
-func validatePreference(input string, typeOfPreference string) (string, error) {
-	input = sanitizeInput(input)
-
-	var allowedValues []string
-
-	switch typeOfPreference {
-	case "gpu":
-		allowedValues = allowedGPUPreferences
-	case "cpu":
-		allowedValues = allowedCPUPreferences
-	default:
-		return "", fmt.Errorf("tipo de preferência inválido: %s", typeOfPreference)
-	}
-
-	if !contains(allowedValues, input) {
-		return "", fmt.Errorf("preferência de %s inválida: %s", typeOfPreference, input)
-	}
-
-	userPreference := fmt.Sprintf("customer has %s preference for their %s", input, typeOfPreference)
-	return userPreference, nil
-}
-
-func (bp *BasePrompts) getBasePrompt() (string, error) {
-	ctx := context.Background()
-
+func (c *GoogleAIClient) getBasePrompt(ctx context.Context, category string) (string, error) {
 	var promptDoc PromptDocument
-	err := bp.Collection.FindOne(ctx, bson.M{"category": "pc_builder"}).Decode(&promptDoc)
+	err := c.BasePrompts.Collection.FindOne(ctx, map[string]string{"category": category}).Decode(&promptDoc)
 	if err != nil {
-		return "", fmt.Errorf("failed to find base prompt: %w", err)
+		return "", fmt.Errorf("failed to get base prompt: %w", err)
 	}
-
 	return promptDoc.Content, nil
 }
 
-func (c *GoogleAIClient) BuildComputerPrompt(usageType string, cpuPreference string, gpuPreference string, budget int64) (string, error) {
-	basePrompt, err := c.BasePrompts.getBasePrompt()
-	if err != nil {
-		return "", err
+func (c *GoogleAIClient) GeneratePcBuildAnalysis(ctx context.Context, build *presenters.RecommendationBuild) (string, error) {
+	if build == nil {
+		return "", fmt.Errorf("build is nil")
+	}
+	if build.Parts.CPU == nil || build.Parts.GPU == nil || build.Parts.RAM == nil ||
+		build.Parts.PrimaryStorage == nil || build.Parts.PSU == nil {
+		return "", fmt.Errorf("one or more build parts are nil")
 	}
 
-	usageType = sanitizeInput(usageType)
-
-	cpuPreference, err = validatePreference(cpuPreference, "cpu")
+	basePrompt, err := c.getBasePrompt(ctx, "build_analysis")
 	if err != nil {
-		cpuPreference = "the client have no preferences of CPU brand"
-		fmt.Printf("Aviso: %v. Usando valor padrão.\n", err)
+		return "", fmt.Errorf("failed to get base prompt: %w", err)
 	}
 
-	gpuPreference, err = validatePreference(gpuPreference, "gpu")
-	if err != nil {
-		gpuPreference = "the client have no preferences of GPU brand"
-		fmt.Printf("Aviso: %v. Usando valor padrão.\n", err)
+	budget := float64(build.Budget) / 100
+	buildValue := float64(build.BuildValue) / 100
+	remainingBudget := budget - buildValue
+
+	prompt := fmt.Sprintf(`%s
+
+## Build Configuration
+
+**Build Type:** %s
+**Budget:** R$ %.2f | **Build Cost:** R$ %.2f | **Remaining:** R$ %.2f
+
+**Components:**
+- CPU: %s %s (Performance: %d/10)
+- GPU: %s %s (%dGB VRAM, Performance: %d/10)
+- RAM: %dGB @ %dMHz
+- Storage: %dGB SSD
+- PSU: %dW 80+ %s`,
+		basePrompt,
+		build.BuildType,
+		budget,
+		buildValue,
+		remainingBudget,
+		// CPU
+		build.Parts.CPU.Brand,
+		build.Parts.CPU.Model,
+		build.Parts.CPU.Specs.PerformanceScore,
+		// GPU
+		build.Parts.GPU.Brand,
+		build.Parts.GPU.Model,
+		build.Parts.GPU.Specs.VramGB,
+		build.Parts.GPU.Specs.PerformanceScore,
+		// RAM
+		build.Parts.RAM.Specs.CapacityGB,
+		build.Parts.RAM.Specs.MemorySpeedMHz,
+		// Storage
+		build.Parts.PrimaryStorage.Specs.CapacityGB,
+		// PSU
+		build.Parts.PSU.Specs.Wattage,
+		c.getEfficiencyRatingName(build.Parts.PSU.Specs.EfficiencyRating),
+	)
+
+	config := &genai.GenerateContentConfig{
+		Temperature: genai.Ptr(float32(0.7)),
 	}
 
-	fullPrompt := fmt.Sprintf(`%s
+	resp, err := c.Client.Models.GenerateContent(ctx, "gemini-2.5-flash", []*genai.Content{
+		{
+			Role: "user",
+			Parts: []*genai.Part{
+				{Text: prompt},
+			},
+		},
+	}, config)
+	if err != nil {
+		return "", fmt.Errorf("google AI API error: %w", err)
+	}
 
-The client wants a PC that will be used for %s:
+	if len(resp.Candidates) == 0 {
+		return "", fmt.Errorf("no candidates in response")
+	}
+	if resp.Candidates[0].Content == nil || len(resp.Candidates[0].Content.Parts) == 0 {
+		return "", fmt.Errorf("no content parts in response")
+	}
 
-%s, %s, his budget is %d BRL.`, basePrompt, usageType, cpuPreference, gpuPreference, budget)
-
-	return fullPrompt, nil
+	analysis := resp.Candidates[0].Content.Parts[0].Text
+	return analysis, nil
 }
 
-// TODO: Descomentar quando entity.AIBuildResponse for criada
-// func CleanAndParseGeminiResponse(raw string) (*entity.AIBuildResponse, error) {
-// 	re := regexp.MustCompile("(?s)```json\\n(.*?)\\n```")
-// 	match := re.FindStringSubmatch(raw)
-
-// 	var cleaned string
-// 	if len(match) > 1 {
-// 		cleaned = match[1]
-// 	} else {
-// 		cleaned = raw
-// 	}
-
-// 	cleaned = strings.ReplaceAll(cleaned, "\\n", "")
-// 	cleaned = strings.ReplaceAll(cleaned, "\\\"", "\"")
-// 	cleaned = strings.ReplaceAll(cleaned, "\\\\", "\\")
-
-// 	var result *entity.AIBuildResponse
-// 	err := json.Unmarshal([]byte(cleaned), &result)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to unmarshal cleaned response: %w", err)
-// 	}
-
-// 	return result, nil
-// }
-
-// func (c *GoogleAIClient) GenerateBuilds(prompt string) (*entity.AIBuildResponse, error) {
-// 	ctx := context.Background()
-
-// 	rawResponse, err := c.Client.Models.GenerateContent(
-// 		ctx,
-// 		"gemini-2.0-flash",
-// 		genai.Text(prompt),
-// 		nil,
-// 	)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to generate builds: %w", err)
-// 	}
-
-// 	cleanedJSON, err := CleanAndParseGeminiResponse(rawResponse.Text())
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to clean raw response: %s", err)
-// 	}
-
-// 	return cleanedJSON, nil
-// }
-
-func (c *GoogleAIClient) GeneratePcBuildAnalysis(ctx context.Context, part *entity.Part) (string, error) {
-	// TODO: Implementar análise de build via IA
-	return "", fmt.Errorf("not implemented yet")
+func (c *GoogleAIClient) getEfficiencyRatingName(rating int8) string {
+	switch rating {
+	case 1:
+		return "Bronze"
+	case 2:
+		return "Silver"
+	case 3:
+		return "Gold"
+	case 4:
+		return "Platinum"
+	case 5:
+		return "Titanium"
+	default:
+		return "Standard"
+	}
 }
 
 func (c *GoogleAIClient) Close() error {

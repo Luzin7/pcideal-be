@@ -22,13 +22,12 @@ func NewUpdatePartsUseCase(partRepository repository.PartRepository, scraperClie
 	}
 }
 
-func (uc *UpdatePartsUseCase) Execute(urls []*dto.ProductLinkToUpdate) *errors.ErrService {
-	ctx := context.Background()
+func (uc *UpdatePartsUseCase) Execute(ctx context.Context, urls []dto.ProductLinkToUpdate, store string) *errors.ErrService {
 	if len(urls) <= 0 {
 		return errors.New("urls cannot be empty", 400)
 	}
 
-	updatedParts, err := uc.scraperClient.UpdateProducts(ctx, urls, "kabum")
+	updatedParts, err := uc.scraperClient.UpdateProducts(ctx, urls, store)
 
 	if err != nil {
 		log.Printf("Error scraping product for part %v", err)

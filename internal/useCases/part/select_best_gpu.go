@@ -2,54 +2,42 @@ package part
 
 import (
 	"context"
-	"log"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
-	"github.com/Luzin7/pcideal-be/internal/domain/repository"
+	"github.com/Luzin7/pcideal-be/internal/dto"
 	"github.com/Luzin7/pcideal-be/internal/errors"
+	"github.com/Luzin7/pcideal-be/internal/util"
 )
 
 type SelectBestGPUUseCase struct {
-	partRepository repository.PartRepository
+	UpdatePartsUseCase *UpdatePartsUseCase
 }
 
-func NewSelectBestGPUUseCase(partRepository repository.PartRepository) *SelectBestGPUUseCase {
+func NewSelectBestGPUUseCase(updatePartsUseCase *UpdatePartsUseCase) *SelectBestGPUUseCase {
 	return &SelectBestGPUUseCase{
-		partRepository: partRepository,
+		UpdatePartsUseCase: updatePartsUseCase,
 	}
 }
 
 type SelectBestGPUArgs struct {
-	BrandPreference string
-	MaxPriceCents   int64
+	gpus []*entity.Part
 }
 
-func (uc *SelectBestGPUUseCase) Execute(ctx context.Context, gpuPreference SelectBestGPUArgs) (entity.Part, *errors.ErrService) {
-	log.Printf("[SelectBestGPU] Filtering - Brand: %s, MaxPrice: %d", gpuPreference.BrandPreference, gpuPreference.MaxPriceCents)
-
-	gpus, err := uc.partRepository.FindPartByTypeAndBrandWithMaxPrice(ctx, repository.FindPartByTypeAndBrandWithMaxPriceArgs{
-		PartType:      "GPU",
-		Brand:         gpuPreference.BrandPreference,
-		MaxPriceCents: gpuPreference.MaxPriceCents,
-	})
-	if err != nil {
-		log.Printf("[SelectBestGPU] Error querying database: %v", err)
-		return entity.Part{}, errors.New("Failed to select best GPU", 500)
-	}
-
-	log.Printf("[SelectBestGPU] Found %d GPUs", len(gpus))
-
-	if len(gpus) == 0 {
-		log.Printf("[SelectBestGPU] No GPUs found matching criteria")
-		return entity.Part{}, errors.New("No GPU found matching the criteria", 404)
-	}
-
+func (uc *SelectBestGPUUseCase) Execute(ctx context.Context, args SelectBestGPUArgs) (entity.Part, *errors.ErrService) {
 	var bestGPU entity.Part
+	var partsToUpdate []dto.ProductLinkToUpdate
 
-	for i, gpu := range gpus {
+	for i, gpu := range args.gpus {
 		if i == 0 {
 			bestGPU = *gpu
 			continue
+		}
+
+		if util.PartNeedToUpdate(gpu) {
+			partsToUpdate = append(partsToUpdate, dto.ProductLinkToUpdate{
+				ID:  gpu.ID.Hex(),
+				Url: gpu.URL,
+			})
 		}
 
 		if gpu.Specs.PerformanceScore > bestGPU.Specs.PerformanceScore {
@@ -66,7 +54,11 @@ func (uc *SelectBestGPUUseCase) Execute(ctx context.Context, gpuPreference Selec
 		}
 	}
 
-	log.Printf("[SelectBestGPU] Selected: %s (Brand: %s, Price: %d, Score: %d, MinPSU: %d)", bestGPU.Model, bestGPU.Brand, bestGPU.PriceCents, bestGPU.Specs.PerformanceScore, bestGPU.Specs.MinPSUWatts)
+	if len(partsToUpdate) > 0 {
+		go func() {
+			uc.UpdatePartsUseCase.Execute(context.Background(), partsToUpdate, "kabum")
+		}()
+	}
 
 	return bestGPU, nil
 }

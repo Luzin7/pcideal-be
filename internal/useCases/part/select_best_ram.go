@@ -2,57 +2,45 @@ package part
 
 import (
 	"context"
-	"log"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
-	"github.com/Luzin7/pcideal-be/internal/domain/repository"
+	"github.com/Luzin7/pcideal-be/internal/dto"
 	"github.com/Luzin7/pcideal-be/internal/errors"
+	"github.com/Luzin7/pcideal-be/internal/util"
 )
 
 type SelectBestRAMUseCase struct {
-	partRepository repository.PartRepository
+	UpdatePartsUseCase *UpdatePartsUseCase
 }
 
-func NewSelectBestRAMUseCase(partRepository repository.PartRepository) *SelectBestRAMUseCase {
+func NewSelectBestRAMUseCase(updatePartsUseCase *UpdatePartsUseCase) *SelectBestRAMUseCase {
 	return &SelectBestRAMUseCase{
-		partRepository: partRepository,
+		UpdatePartsUseCase: updatePartsUseCase,
 	}
 }
 
 type SelectBestRAMArgs struct {
-	BrandPreference string
-	MaxPriceCents   int64
+	rams []*entity.Part
 }
 
-func (uc *SelectBestRAMUseCase) Execute(ctx context.Context, ramPreference SelectBestRAMArgs) (entity.Part, *errors.ErrService) {
-	log.Printf("[SelectBestRAM] Filtering - Brand: %s, MaxPrice: %d", ramPreference.BrandPreference, ramPreference.MaxPriceCents)
-
-	rams, err := uc.partRepository.FindPartByTypeAndBrandWithMaxPrice(ctx, repository.FindPartByTypeAndBrandWithMaxPriceArgs{
-		PartType:      "RAM",
-		Brand:         ramPreference.BrandPreference,
-		MaxPriceCents: ramPreference.MaxPriceCents,
-	})
-	if err != nil {
-		log.Printf("[SelectBestRAM] Error querying database: %v", err)
-		return entity.Part{}, errors.New("Failed to select best RAM", 500)
-	}
-
-	log.Printf("[SelectBestRAM] Found %d RAMs", len(rams))
-
-	if len(rams) == 0 {
-		log.Printf("[SelectBestRAM] No RAMs found matching criteria")
-		return entity.Part{}, errors.New("No RAM found matching the criteria", 404)
-	}
-
+func (uc *SelectBestRAMUseCase) Execute(ctx context.Context, args SelectBestRAMArgs) (entity.Part, *errors.ErrService) {
 	var bestRAM entity.Part
+	var partsToUpdate []dto.ProductLinkToUpdate
 
-	for i, ram := range rams {
+	for i, ram := range args.rams {
 		if ram.Specs.CasLatency <= 0 {
 			continue
 		}
 		if i == 0 {
 			bestRAM = *ram
 			continue
+		}
+
+		if util.PartNeedToUpdate(ram) {
+			partsToUpdate = append(partsToUpdate, dto.ProductLinkToUpdate{
+				ID:  ram.ID.Hex(),
+				Url: ram.URL,
+			})
 		}
 
 		if ram.Specs.PerformanceScore > bestRAM.Specs.PerformanceScore {
@@ -78,7 +66,11 @@ func (uc *SelectBestRAMUseCase) Execute(ctx context.Context, ramPreference Selec
 		}
 	}
 
-	log.Printf("[SelectBestRAM] Selected: %s (Brand: %s, Price: %d, Score: %d, CAS: %d)", bestRAM.Model, bestRAM.Brand, bestRAM.PriceCents, bestRAM.Specs.PerformanceScore, bestRAM.Specs.CasLatency)
+	if len(partsToUpdate) > 0 {
+		go func() {
+			uc.UpdatePartsUseCase.Execute(context.Background(), partsToUpdate, "kabum")
+		}()
+	}
 
 	return bestRAM, nil
 }

@@ -2,56 +2,42 @@ package part
 
 import (
 	"context"
-	"log"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
-	"github.com/Luzin7/pcideal-be/internal/domain/repository"
+	"github.com/Luzin7/pcideal-be/internal/dto"
 	"github.com/Luzin7/pcideal-be/internal/errors"
+	"github.com/Luzin7/pcideal-be/internal/util"
 )
 
 type SelectBestMOBOUseCase struct {
-	partRepository repository.PartRepository
+	UpdatePartsUseCase *UpdatePartsUseCase
 }
 
-func NewSelectBestMOBOUseCase(partRepository repository.PartRepository) *SelectBestMOBOUseCase {
+func NewSelectBestMOBOUseCase(updatePartsUseCase *UpdatePartsUseCase) *SelectBestMOBOUseCase {
 	return &SelectBestMOBOUseCase{
-		partRepository: partRepository,
+		UpdatePartsUseCase: updatePartsUseCase,
 	}
 }
 
 type SelectBestMOBOArgs struct {
-	Brand         string
-	Socket        string
-	MaxPriceCents int64
+	mobos []*entity.Part
 }
 
-func (uc *SelectBestMOBOUseCase) Execute(ctx context.Context, moboPreference SelectBestMOBOArgs) (entity.Part, *errors.ErrService) {
-	log.Printf("[SelectBestMOBO] Filtering - Socket: %s, MaxPrice: %d", moboPreference.Socket, moboPreference.MaxPriceCents)
-
-	mobos, err := uc.partRepository.FindPartByTypeAndBrandWithMaxPrice(ctx, repository.FindPartByTypeAndBrandWithMaxPriceArgs{
-		PartType:      "MOTHERBOARD",
-		Brand:         moboPreference.Brand,
-		Socket:        moboPreference.Socket,
-		MaxPriceCents: moboPreference.MaxPriceCents,
-	})
-	if err != nil {
-		log.Printf("[SelectBestMOBO] Error querying database: %v", err)
-		return entity.Part{}, errors.New("Failed to select best MOBO", 500)
-	}
-
-	log.Printf("[SelectBestMOBO] Found %d MOBOs", len(mobos))
-
-	if len(mobos) == 0 {
-		log.Printf("[SelectBestMOBO] No MOBOs found matching criteria")
-		return entity.Part{}, errors.New("No MOBO found matching the criteria", 404)
-	}
-
+func (uc *SelectBestMOBOUseCase) Execute(ctx context.Context, args SelectBestMOBOArgs) (entity.Part, *errors.ErrService) {
 	var bestMOBO entity.Part
+	var partsToUpdate []dto.ProductLinkToUpdate
 
-	for i, mobo := range mobos {
+	for i, mobo := range args.mobos {
 		if i == 0 {
 			bestMOBO = *mobo
 			continue
+		}
+
+		if util.PartNeedToUpdate(mobo) {
+			partsToUpdate = append(partsToUpdate, dto.ProductLinkToUpdate{
+				ID:  mobo.ID.Hex(),
+				Url: mobo.URL,
+			})
 		}
 
 		if mobo.Specs.TierScore > bestMOBO.Specs.TierScore {
@@ -68,7 +54,11 @@ func (uc *SelectBestMOBOUseCase) Execute(ctx context.Context, moboPreference Sel
 		}
 	}
 
-	log.Printf("[SelectBestMOBO] Selected: %s (Brand: %s, Price: %d, Socket: %s, TierScore: %d)", bestMOBO.Model, bestMOBO.Brand, bestMOBO.PriceCents, bestMOBO.Specs.Socket, bestMOBO.Specs.TierScore)
+	if len(partsToUpdate) > 0 {
+		go func() {
+			uc.UpdatePartsUseCase.Execute(context.Background(), partsToUpdate, "kabum")
+		}()
+	}
 
 	return bestMOBO, nil
 }

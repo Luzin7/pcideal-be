@@ -4,7 +4,7 @@ import "github.com/Luzin7/pcideal-be/internal/domain/entity"
 
 type ProductLinkToUpdate struct {
 	ID  string `json:"id"`
-	URL string `json:"url"`
+	Url string `json:"url"`
 }
 
 type PartWithID struct {
