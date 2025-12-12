@@ -1,104 +1,101 @@
 # PC Ideal - Backend
 
-Este é o backend de uma plataforma voltada para entusiastas, consultores e compradores de hardware de computador, focada em facilitar a montagem de builds personalizadas e a busca por peças no mercado nacional.
+> API inteligente para recomendação de builds de PC personalizadas
+
+API REST em Go que utiliza IA generativa e estratégias de orçamento dinâmicas para recomendar configurações de PC otimizadas com base no perfil de uso e orçamento do usuário.
 
 ---
 
-## 💡 Visão Geral
+## Funcionalidades
 
-O PC Ideal oferece uma API REST em Go, integrando-se a um scraper externo para manter sempre atualizadas as informações e preços de peças de hardware, tornando fácil pesquisar, comparar e planejar configurações de PCs.
-
-O sistema foi pensado para ser modular, extensível e de fácil integração com frontends e serviços de terceiros.
-
----
-
-## 🚀 Funcionalidades Principais
-
-- **Consulta de Peças:** Busque peças individuais por ID ou modelo, ou faça um levantamento de todas disponíveis no banco.
-- **Cadastro e Atualização Dinâmica:** Adicione novas peças ao sistema, com atualização automática de preços e especificações por meio de integração com scraper.
-- **Modelagem Completa:** Cada peça é cadastrada com informações detalhadas (tipo, marca, modelo, specs completas, preço, loja de origem, etc).
-- **Atualização Automática:** O sistema detecta quando os dados estão desatualizados e dispara atualizações em background.
-- **Preparado para Builds:** Estrutura pronta para implementar montagem de builds personalizadas, gerenciamento de orçamento e recomendações.
-- **Arquitetura Modular:** Separação clara entre controllers, services, repositórios, contratos e modelos.
+- **Consulta de peças** com atualização automática de preços via scraper externo
+- **Recomendações de builds** com 3 perfis (Econômica, Balanceada, Performance)
+- **Estratégias de orçamento inteligentes** adaptadas ao tipo de uso (Gaming, Work, Office)
+- **Análise por IA** usando Google Gemini para cada build gerada
+- **Validação de compatibilidade** entre componentes
 
 ---
 
-## 🛠️ Estrutura do Projeto
+## Arquitetura
 
+Projeto estruturado seguindo **Clean Architecture**:
+
+- **Domain**: Entidades e regras de negócio (Part, Build, BudgetStrategy)
+- **Use Cases**: Lógica de negócio e algoritmos de seleção de componentes
+- **Infrastructure**: HTTP controllers, repositórios MongoDB, integrações externas
+- **Dependency Injection**: Configurada no `main.go`
+
+---
+
+## Como Funciona
+
+O sistema gera 3 builds (Econômica, Balanceada, Performance) seguindo estas etapas:
+
+1. **Seleção de estratégia de orçamento** baseada no tipo de uso e valor
+2. **Busca de componentes compatíveis** seguindo ordem de dependências (CPU → Motherboard → GPU → PSU → RAM → SSD)
+3. **Validação de compatibilidade** (socket, tipo de memória, potência)
+4. **Análise por IA** gerando recomendações personalizadas
+
+---
+
+## Endpoints
+
+```http
+GET /api/parts/              # Lista todas as peças
+GET /api/parts/:id           # Detalhes de uma peça
+POST /api/builds/recommendations  # Gera recomendações de builds
 ```
-cmd/
-  main.go            # Inicialização da aplicação
-internal/
-  core/
-    models/          # Modelos de dados (Part, Build, etc)
-  contracts/         # Interfaces para scraper e repositórios
-  http/
-    controllers/     # Controllers das rotas REST
-    services/        # Lógica de negócio
-    routes/          # Definição de rotas
-infra/
-  database/          # Conexão e configuração do MongoDB
-  repositories/      # Implementação dos repositórios (Mongo)
-```
 
----
-
-## 📦 Exemplos de Recursos
-
-### Peça (`Part`)
+**Exemplo de requisição:**
 ```json
 {
-  "id": "abcdef123456",
-  "type": "GPU",
-  "brand": "NVIDIA",
-  "model": "RTX 4060 Ti",
-  "specs": {
-    "memory_type": "GDDR6",
-    "capacity": 8,
-    "interface": "PCIe 4.0",
-    "power_supply": 550
-  },
-  "price_cents": 320000,
-  "url": "https://loja.com/produto/rtx4060ti",
-  "store": "Loja do PC",
-  "updated_at": "2025-05-23T00:00:00Z"
+  "budget": 5000.00,
+  "usage_type": "GAMING",
+  "cpu_preference": "AMD",
+  "gpu_preference": "NVIDIA"
 }
 ```
 
-<!-- ### Build (`Build`)
-```json
-{
-  "id": "build789",
-  "user_id": "user123",
-  "goal": "gaming",
-  "budget": 5000,
-  "parts": ["cpuId", "gpuId", "ramId", "ssdId"],
-  "total_price": 4899.90,
-  "created_at": "2025-05-23T00:00:00Z"
-}
-``` -->
+---
+
+## Stack
+
+- **Go 1.24** com Gin Framework
+- **MongoDB** para persistência
+- **Google Gemini AI** para análises
+- **Scraper API** para atualização de preços
 
 ---
 
-## 🌐 Endpoints REST (Principais)
+## Executando o Projeto
 
-- `GET /api/parts/` – Lista todas as peças cadastradas.
-- `GET /api/parts/:id` – Consulta uma peça por ID.
-- (Próximos endpoints: busca por modelo, autenticação, builds, etc.)
+```bash
+# Clone e configure
+git clone https://github.com/Luzin7/pcideal-be.git
+cd pcideal-be
+
+# Configure .env com as credenciais necessárias
+PORT=8080
+DATABASE_URL=mongodb://localhost:27017
+PCIDEAL_DB_NAME=pcideal
+SCRAPER_API_URL=...
+SCRAPER_API_KEY=...
+GOOGLE_AI_API_KEY=...
+
+# Inicie MongoDB
+docker-compose up -d
+
+# Execute
+go run cmd/main.go
+```
+
+## Testes
+
+```bash
+go test ./...                    # Todos os testes
+go test -cover ./...             # Com cobertura
+```
 
 ---
 
-## 🔌 Tecnologias e Integrações
-
-- **Go:** Backend robusto, tipado e performático.
-- **MongoDB:** Armazenamento NoSQL, flexível para diferentes tipos de peças.
-- **Gin Gonic:** Framework web para rotas e middlewares.
-- **Scraper HTTP:** Integração com serviço externo para atualizar specs e preços.
-
----
-
-## 📚 Modelos de Dados
-
-- **Part:** Representa uma peça de hardware, incluindo specs detalhadas.
-- **Build:** Representa uma configuração de PC personalizada.
-- **Specs:** Subdocumento com informações técnicas específicas para cada tipo de peça.
+**PC Ideal** - Builds inteligentes para todos os orçamentos
