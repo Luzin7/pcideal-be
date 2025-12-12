@@ -11,7 +11,7 @@ import (
 
 func MongoConnection(connectionString string, databaseName string) (*mongo.Database, error) {
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	clientOptions := options.Client().ApplyURI(connectionString)
