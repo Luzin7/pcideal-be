@@ -61,6 +61,15 @@ func (uc *SelectBestRAMUseCase) Execute(ctx context.Context, args SelectBestRAMA
 			continue
 		}
 
+		if ram.Specs.CapacityGB > bestRAM.Specs.CapacityGB {
+			bestRAM = *ram
+			continue
+		}
+
+		if ram.Specs.CapacityGB < bestRAM.Specs.CapacityGB {
+			continue
+		}
+
 		if ram.PriceCents < bestRAM.PriceCents {
 			bestRAM = *ram
 		}

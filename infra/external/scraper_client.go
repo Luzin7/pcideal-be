@@ -113,11 +113,14 @@ func (s *ScraperHTTPClient) UpdateProducts(ctx context.Context, links []dto.Prod
 		return nil, fmt.Errorf("erro ao chamar scraping API: %s", resp.Status)
 	}
 
-	var partsWithID []*dto.PartWithID
-	if err := json.NewDecoder(resp.Body).Decode(&partsWithID); err != nil {
+	var response dto.UpdateProductsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		log.Printf("Error decoding response: %v", err)
 		return nil, err
 	}
 
-	return partsWithID, nil
+	log.Printf("Successfully updated %d products (%d success, %d failed) from store %s",
+		response.Total, response.Success, response.Failed, response.Store)
+
+	return response.Results, nil
 }
