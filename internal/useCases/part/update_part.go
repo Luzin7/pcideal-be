@@ -44,7 +44,7 @@ func (uc *UpdatePartUseCase) Execute(partId string) *errors.ErrService {
 	part.Model = scrapedPart.Model
 	part.Specs = scrapedPart.Specs
 	part.PriceCents = scrapedPart.PriceCents
-	part.UpdatedAt = time.Now()
+	part.UpdatedAt = time.Now().UTC()
 
 	err = uc.partRepository.UpdatePart(ctx, partId, part)
 
