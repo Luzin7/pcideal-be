@@ -10,8 +10,8 @@ type GamingLowBudgetStrategy struct{}
 func (s GamingLowBudgetStrategy) GetName() string { return "GAMING" }
 func (s GamingLowBudgetStrategy) GetAllocations() map[PartType]float64 {
 	return map[PartType]float64{
-		TypeGPU:  0.40,
-		TypeCPU:  0.20,
+		TypeGPU:  0.35,
+		TypeCPU:  0.25,
 		TypeMobo: 0.14,
 		TypeRAM:  0.10,
 		TypePSU:  0.10,
@@ -81,25 +81,53 @@ func (s WorkHighBudgetStrategy) GetName() string { return "WORK" }
 func (s WorkHighBudgetStrategy) GetAllocations() map[PartType]float64 {
 	return map[PartType]float64{
 		TypeGPU:  0.25,
-		TypeCPU:  0.35,
+		TypeCPU:  0.30,
 		TypeRAM:  0.20,
 		TypeSSD:  0.10,
-		TypeMobo: 0.05,
+		TypeMobo: 0.10,
 		TypePSU:  0.05,
 	}
 }
 
-type OfficeStrategy struct{}
+type ContentCreatorLowBudgetStrategy struct{}
 
-func (s OfficeStrategy) GetName() string { return "OFFICE" }
-func (s OfficeStrategy) GetAllocations() map[PartType]float64 {
+func (s ContentCreatorLowBudgetStrategy) GetName() string { return "CONTENT_CREATOR" }
+func (s ContentCreatorLowBudgetStrategy) GetAllocations() map[PartType]float64 {
 	return map[PartType]float64{
-		TypeGPU:  0.00,
-		TypeCPU:  0.40,
+		TypeCPU:  0.35,
+		TypeGPU:  0.20,
 		TypeRAM:  0.15,
-		TypeSSD:  0.15,
-		TypeMobo: 0.15,
-		TypePSU:  0.15,
+		TypeMobo: 0.14,
+		TypeSSD:  0.08,
+		TypePSU:  0.08,
+	}
+}
+
+type ContentCreatorMidBudgetStrategy struct{}
+
+func (s ContentCreatorMidBudgetStrategy) GetName() string { return "CONTENT_CREATOR" }
+func (s ContentCreatorMidBudgetStrategy) GetAllocations() map[PartType]float64 {
+	return map[PartType]float64{
+		TypeGPU:  0.30,
+		TypeCPU:  0.28,
+		TypeRAM:  0.15,
+		TypeMobo: 0.12,
+		TypeSSD:  0.08,
+		TypePSU:  0.07,
+	}
+}
+
+type ContentCreatorHighBudgetStrategy struct{}
+
+func (s ContentCreatorHighBudgetStrategy) GetName() string { return "CONTENT_CREATOR" }
+func (s ContentCreatorHighBudgetStrategy) GetAllocations() map[PartType]float64 {
+	return map[PartType]float64{
+		TypeGPU:  0.35,
+		TypeCPU:  0.25,
+		TypeRAM:  0.15,
+		TypeMobo: 0.12,
+		TypeSSD:  0.08,
+		TypePSU:  0.05,
 	}
 }
 
@@ -117,8 +145,15 @@ func GetStrategy(objective string, budget int64) BudgetStrategy {
 			return WorkMidBudgetStrategy{}
 		}
 		return WorkHighBudgetStrategy{}
-	case "OFFICE":
-		return OfficeStrategy{}
+
+	case "CONTENT_CREATOR":
+		if budget < lowBudgetThreshold {
+			return ContentCreatorLowBudgetStrategy{}
+		} else if budget < highBudgetThreshold {
+			return ContentCreatorMidBudgetStrategy{}
+		}
+		return ContentCreatorHighBudgetStrategy{}
+
 	default: // "GAMING"
 		if budget < lowBudgetThreshold {
 			return GamingLowBudgetStrategy{}

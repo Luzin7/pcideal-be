@@ -90,27 +90,36 @@ func TestGetStrategy_Work(t *testing.T) {
 	}
 }
 
-func TestGetStrategy_Office(t *testing.T) {
+func TestGetStrategy_ContentCreator(t *testing.T) {
 	tests := []struct {
 		name         string
 		budgetCents  int64
+		expectedType string
 		expectedName string
 	}{
 		{
-			name:         "office low budget",
-			budgetCents:  200000,
-			expectedName: "OFFICE",
+			name:         "content creator low budget (below 3500 reais)",
+			budgetCents:  300000,
+			expectedType: "ContentCreatorLowBudgetStrategy",
+			expectedName: "CONTENT_CREATOR",
 		},
 		{
-			name:         "office high budget",
+			name:         "content creator mid budget (between 3500 and 7000 reais)",
+			budgetCents:  500000,
+			expectedType: "ContentCreatorMidBudgetStrategy",
+			expectedName: "CONTENT_CREATOR",
+		},
+		{
+			name:         "content creator high budget (above 7000 reais)",
 			budgetCents:  800000,
-			expectedName: "OFFICE",
+			expectedType: "ContentCreatorHighBudgetStrategy",
+			expectedName: "CONTENT_CREATOR",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			strategy := GetStrategy("OFFICE", tt.budgetCents)
+			strategy := GetStrategy("CONTENT_CREATOR", tt.budgetCents)
 			if strategy.GetName() != tt.expectedName {
 				t.Errorf("GetStrategy() name = %v, expected %v", strategy.GetName(), tt.expectedName)
 			}
@@ -123,8 +132,8 @@ func TestGamingLowBudgetStrategy_Allocations(t *testing.T) {
 	allocations := strategy.GetAllocations()
 
 	expected := map[PartType]float64{
-		TypeGPU:  0.40,
-		TypeCPU:  0.20,
+		TypeGPU:  0.35,
+		TypeCPU:  0.25,
 		TypeMobo: 0.14,
 		TypeRAM:  0.10,
 		TypePSU:  0.10,
@@ -204,30 +213,62 @@ func TestWorkHighBudgetStrategy_Allocations(t *testing.T) {
 
 	expected := map[PartType]float64{
 		TypeGPU:  0.25,
-		TypeCPU:  0.35,
+		TypeCPU:  0.30,
 		TypeRAM:  0.20,
 		TypeSSD:  0.10,
-		TypeMobo: 0.05,
+		TypeMobo: 0.10,
 		TypePSU:  0.05,
 	}
 
 	verifyAllocations(t, allocations, expected, "WorkHighBudgetStrategy")
 }
 
-func TestOfficeStrategy_Allocations(t *testing.T) {
-	strategy := OfficeStrategy{}
+func TestContentCreatorLowBudgetStrategy_Allocations(t *testing.T) {
+	strategy := ContentCreatorLowBudgetStrategy{}
 	allocations := strategy.GetAllocations()
 
 	expected := map[PartType]float64{
-		TypeGPU:  0.00,
-		TypeCPU:  0.40,
+		TypeCPU:  0.35,
+		TypeGPU:  0.20,
 		TypeRAM:  0.15,
-		TypeSSD:  0.15,
-		TypeMobo: 0.15,
-		TypePSU:  0.15,
+		TypeMobo: 0.14,
+		TypeSSD:  0.08,
+		TypePSU:  0.08,
 	}
 
-	verifyAllocations(t, allocations, expected, "OfficeStrategy")
+	verifyAllocations(t, allocations, expected, "ContentCreatorLowBudgetStrategy")
+}
+
+func TestContentCreatorMidBudgetStrategy_Allocations(t *testing.T) {
+	strategy := ContentCreatorMidBudgetStrategy{}
+	allocations := strategy.GetAllocations()
+
+	expected := map[PartType]float64{
+		TypeGPU:  0.30,
+		TypeCPU:  0.28,
+		TypeRAM:  0.15,
+		TypeMobo: 0.12,
+		TypeSSD:  0.08,
+		TypePSU:  0.07,
+	}
+
+	verifyAllocations(t, allocations, expected, "ContentCreatorMidBudgetStrategy")
+}
+
+func TestContentCreatorHighBudgetStrategy_Allocations(t *testing.T) {
+	strategy := ContentCreatorHighBudgetStrategy{}
+	allocations := strategy.GetAllocations()
+
+	expected := map[PartType]float64{
+		TypeGPU:  0.35,
+		TypeCPU:  0.25,
+		TypeRAM:  0.15,
+		TypeMobo: 0.12,
+		TypeSSD:  0.08,
+		TypePSU:  0.05,
+	}
+
+	verifyAllocations(t, allocations, expected, "ContentCreatorHighBudgetStrategy")
 }
 
 func TestAllocations_SumToOne(t *testing.T) {
@@ -238,7 +279,9 @@ func TestAllocations_SumToOne(t *testing.T) {
 		WorkLowBudgetStrategy{},
 		WorkMidBudgetStrategy{},
 		WorkHighBudgetStrategy{},
-		OfficeStrategy{},
+		ContentCreatorLowBudgetStrategy{},
+		ContentCreatorMidBudgetStrategy{},
+		ContentCreatorHighBudgetStrategy{},
 	}
 
 	for _, strategy := range strategies {
