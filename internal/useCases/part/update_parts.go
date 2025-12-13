@@ -35,7 +35,7 @@ func (uc *UpdatePartsUseCase) Execute(ctx context.Context, urls []dto.ProductLin
 	}
 
 	for _, part := range updatedParts {
-		part.Part.UpdatedAt = time.Now()
+		part.Part.UpdatedAt = time.Now().UTC()
 
 		err = uc.partRepository.UpdatePart(ctx, part.ID, part.Part)
 		if err != nil {
