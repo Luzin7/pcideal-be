@@ -75,9 +75,10 @@ func (uc *GenerateBuildRecommendationsUseCase) Execute(ctx context.Context, args
 		maxCpuBudgetCents := int64(float64(buildBudgetCents) * allocations[entity.TypeCPU])
 
 		cpus, err := uc.partRepository.FindPartByTypeAndBrandWithMaxPrice(ctx, repository.FindPartByTypeAndBrandWithMaxPriceArgs{
-			PartType:      "CPU",
-			Brand:         args.CpuPreference,
-			MaxPriceCents: maxCpuBudgetCents,
+			PartType:           "CPU",
+			Brand:              args.CpuPreference,
+			MaxPriceCents:      maxCpuBudgetCents,
+			IntegratedGraphics: args.UsageType == "WORK",
 		})
 		if err != nil {
 			log.Printf("[SelectBestCPU] Error querying database: %v", err)
@@ -98,6 +99,7 @@ func (uc *GenerateBuildRecommendationsUseCase) Execute(ctx context.Context, args
 			Brand:         args.CpuPreference,
 			Socket:        selectedCpu.Specs.Socket,
 			MaxPriceCents: maxMoboBudgetCents,
+			MemoryType:    selectedCpu.Specs.MemoryType,
 		})
 		if err != nil {
 			log.Printf("[SelectBestMOBO] Error querying database: %v", err)
@@ -113,21 +115,34 @@ func (uc *GenerateBuildRecommendationsUseCase) Execute(ctx context.Context, args
 
 		maxGpuBudgetCents := int64(float64(buildBudgetCents) * allocations[entity.TypeGPU])
 
-		gpus, err := uc.partRepository.FindPartByTypeAndBrandWithMaxPrice(ctx, repository.FindPartByTypeAndBrandWithMaxPriceArgs{
-			PartType:      "GPU",
-			Brand:         args.GpuPreference,
-			MaxPriceCents: maxGpuBudgetCents,
-		})
-		if err != nil {
-			log.Printf("[SelectBestGPU] Error querying database: %v", err)
-			return nil, errors.ErrBuildAttemptNotFound()
+		var selectedGpu entity.Part
+
+		selectedGpu = entity.Part{
+			Brand:         "Integrado",
+			Model:         "Processador",
+			AffiliatedURL: selectedCpu.AffiliatedURL,
+			PriceCents:    0,
 		}
 
-		selectedGpu, errGpu := uc.selectBestGPUUC.Execute(ctx, SelectBestGPUArgs{
-			gpus: gpus,
-		})
-		if errGpu != nil {
-			return nil, errors.ErrBuildAttemptNotFound()
+		if args.UsageType != "WORK" {
+			gpus, err := uc.partRepository.FindPartByTypeAndBrandWithMaxPrice(ctx, repository.FindPartByTypeAndBrandWithMaxPriceArgs{
+				PartType:      "GPU",
+				Brand:         args.GpuPreference,
+				MaxPriceCents: maxGpuBudgetCents,
+			})
+			if err != nil {
+				log.Printf("[SelectBestGPU] Error querying database: %v", err)
+				return nil, errors.ErrBuildAttemptNotFound()
+			}
+
+			selecteBestdGpu, errGpu := uc.selectBestGPUUC.Execute(ctx, SelectBestGPUArgs{
+				gpus: gpus,
+			})
+			if errGpu != nil {
+				return nil, errors.ErrBuildAttemptNotFound()
+			}
+
+			selectedGpu = selecteBestdGpu
 		}
 
 		maxPsuBudgetCents := int64(float64(buildBudgetCents) * allocations[entity.TypePSU])

@@ -7,12 +7,13 @@ import (
 )
 
 type FindPartByTypeAndBrandWithMaxPriceArgs struct {
-	PartType      entity.PartType
-	Brand         string
-	MaxPriceCents int64
-	MinPSUWatts   int16
-	Socket        string
-	MemoryType    string
+	PartType           entity.PartType
+	Brand              string
+	MaxPriceCents      int64
+	MinPSUWatts        int16
+	Socket             string
+	MemoryType         string
+	IntegratedGraphics bool
 }
 
 type PartRepository interface {

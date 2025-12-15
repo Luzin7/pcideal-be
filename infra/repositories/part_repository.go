@@ -143,6 +143,12 @@ func (partRepository *PartRepository) FindPartByTypeAndBrandWithMaxPrice(ctx con
 	if args.PartType == "CPU" {
 		filter["specs.socket"] = bson.M{"$exists": true, "$ne": ""}
 	}
+	if args.IntegratedGraphics {
+		filter["specs.has_integrated_graphics"] = true
+	}
+	if args.MemoryType != "" {
+		filter["specs.memory_type"] = args.MemoryType
+	}
 	if args.PartType == "PSU" && args.MinPSUWatts > 0 {
 		filter["specs.wattage"] = bson.M{"$gte": args.MinPSUWatts}
 	}

@@ -18,18 +18,19 @@ const (
 )
 
 type Specs struct {
-	Socket           string `bson:"socket,omitempty" json:"socket,omitempty"`
-	MemoryType       string `bson:"memory_type,omitempty" json:"memory_type,omitempty"`
-	FormFactor       string `bson:"form_factor,omitempty" json:"form_factor,omitempty"`
-	MinPSUWatts      int16  `bson:"min_psu_watts,omitempty" json:"min_psu_watts,omitempty"`
-	Wattage          int16  `bson:"wattage,omitempty" json:"wattage,omitempty"`
-	EfficiencyRating int8   `bson:"efficiency_rating,omitempty" json:"efficiency_rating,omitempty"`
-	PerformanceScore int8   `bson:"performance_score,omitempty" json:"performance_score,omitempty"`
-	TierScore        int8   `bson:"tier_score,omitempty" json:"tier_score,omitempty"`
-	VramGB           int    `bson:"vram_gb,omitempty" json:"vram_gb,omitempty"`
-	CapacityGB       int    `bson:"capacity_gb,omitempty" json:"capacity_gb,omitempty"`
-	MemorySpeedMHz   int    `bson:"memory_speed_mhz,omitempty" json:"memory_speed_mhz,omitempty"`
-	CasLatency       int    `bson:"cas_latency,omitempty" json:"cas_latency,omitempty"`
+	Socket                string `bson:"socket,omitempty" json:"socket,omitempty"`
+	MemoryType            string `bson:"memory_type,omitempty" json:"memory_type,omitempty"`
+	FormFactor            string `bson:"form_factor,omitempty" json:"form_factor,omitempty"`
+	MinPSUWatts           int16  `bson:"min_psu_watts,omitempty" json:"min_psu_watts,omitempty"`
+	Wattage               int16  `bson:"wattage,omitempty" json:"wattage,omitempty"`
+	EfficiencyRating      int8   `bson:"efficiency_rating,omitempty" json:"efficiency_rating,omitempty"`
+	PerformanceScore      int8   `bson:"performance_score,omitempty" json:"performance_score,omitempty"`
+	TierScore             int8   `bson:"tier_score,omitempty" json:"tier_score,omitempty"`
+	VramGB                int    `bson:"vram_gb,omitempty" json:"vram_gb,omitempty"`
+	CapacityGB            int    `bson:"capacity_gb,omitempty" json:"capacity_gb,omitempty"`
+	MemorySpeedMHz        int    `bson:"memory_speed_mhz,omitempty" json:"memory_speed_mhz,omitempty"`
+	CasLatency            int    `bson:"cas_latency,omitempty" json:"cas_latency,omitempty"`
+	HasIntegratedGraphics bool   `bson:"has_integrated_graphics,omitempty" json:"has_integrated_graphics,omitempty"`
 }
 
 type Part struct {
