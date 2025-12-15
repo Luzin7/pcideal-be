@@ -35,6 +35,11 @@ func (uc *UpdatePartsUseCase) Execute(ctx context.Context, urls []dto.ProductLin
 	}
 
 	for _, part := range updatedParts {
+		if part.Part == nil {
+			log.Printf("Warning: part.Part is nil for ID %s, skipping update", part.ID)
+			continue
+		}
+
 		part.Part.UpdatedAt = time.Now().UTC()
 
 		err = uc.partRepository.UpdatePart(ctx, part.ID, part.Part)
