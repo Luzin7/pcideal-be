@@ -40,26 +40,15 @@ func (uc *SelectBestGPUUseCase) Execute(ctx context.Context, args SelectBestGPUA
 			})
 		}
 
-		if gpu.Specs.PerformanceScore > bestGPU.Specs.PerformanceScore {
-			bestGPU = *gpu
-			continue
-		}
-
 		if gpu.Specs.PerformanceScore < bestGPU.Specs.PerformanceScore {
 			continue
 		}
 
-		if gpu.Specs.VramGB > bestGPU.Specs.VramGB {
-			bestGPU = *gpu
+		if gpu.Specs.PerformanceScore >= bestGPU.Specs.PerformanceScore {
+			if gpu.PriceCents < bestGPU.PriceCents && gpu.Specs.VramGB >= bestGPU.Specs.VramGB {
+				bestGPU = *gpu
+			}
 			continue
-		}
-
-		if gpu.Specs.VramGB < bestGPU.Specs.VramGB {
-			continue
-		}
-
-		if gpu.PriceCents < bestGPU.PriceCents {
-			bestGPU = *gpu
 		}
 	}
 
