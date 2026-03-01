@@ -94,9 +94,16 @@ func (uc *GenerateBuildRecommendationsUseCase) Execute(ctx context.Context, args
 
 		maxMoboBudgetCents := int64(float64(buildBudgetCents) * allocations[entity.TypeMobo])
 
+		var moboBrandPreference string
+		if args.CpuPreference != "" && args.CpuPreference != "no-preference" {
+			moboBrandPreference = args.CpuPreference
+		} else {
+			moboBrandPreference = selectedCpu.Brand
+		}
+
 		mobos, err := uc.partRepository.FindPartByTypeAndBrandWithMaxPrice(ctx, repository.FindPartByTypeAndBrandWithMaxPriceArgs{
 			PartType:      "MOTHERBOARD",
-			Brand:         args.CpuPreference,
+			Brand:         moboBrandPreference,
 			Socket:        selectedCpu.Specs.Socket,
 			MaxPriceCents: maxMoboBudgetCents,
 			MemoryType:    selectedCpu.Specs.MemoryType,
@@ -213,7 +220,7 @@ func (uc *GenerateBuildRecommendationsUseCase) Execute(ctx context.Context, args
 			BuildValue: selectedCpu.PriceCents + selectedGpu.PriceCents + selectedMobo.PriceCents + selectedPsu.PriceCents + selectedRam.PriceCents + selectedSSD.PriceCents,
 		}
 
-		finalBuild.Summary = "Análise indisponível no momento. Em breve você terá uma análise detalhada do build aqui."
+		finalBuild.Summary = "Análise indisponível no momento."
 
 		recommendedBuilds = append(recommendedBuilds, *finalBuild)
 
