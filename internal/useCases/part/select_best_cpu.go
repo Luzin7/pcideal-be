@@ -40,18 +40,17 @@ func (uc *SelectBestCPUUseCase) Execute(ctx context.Context, args SelectBestCPUA
 			})
 		}
 
-		if cpu.Specs.PerformanceScore > bestCPU.Specs.PerformanceScore {
-			bestCPU = *cpu
-			continue
-		}
-
 		if cpu.Specs.PerformanceScore < bestCPU.Specs.PerformanceScore {
 			continue
 		}
 
-		if cpu.PriceCents < bestCPU.PriceCents {
-			bestCPU = *cpu
+		if cpu.Specs.PerformanceScore >= bestCPU.Specs.PerformanceScore {
+			if cpu.PriceCents < bestCPU.PriceCents {
+				bestCPU = *cpu
+			}
+			continue
 		}
+
 	}
 
 	if len(partsToUpdate) > 0 {
