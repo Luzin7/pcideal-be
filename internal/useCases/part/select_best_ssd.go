@@ -40,27 +40,17 @@ func (uc *SelectBestSSDUseCase) Execute(ctx context.Context, args SelectBestSSDA
 			})
 		}
 
-		if ssd.Specs.EfficiencyRating > bestSSD.Specs.EfficiencyRating {
-			bestSSD = *ssd
-			continue
-		}
-
 		if ssd.Specs.EfficiencyRating < bestSSD.Specs.EfficiencyRating {
 			continue
 		}
 
-		if ssd.Specs.CapacityGB > bestSSD.Specs.CapacityGB {
-			bestSSD = *ssd
+		if ssd.Specs.EfficiencyRating >= bestSSD.Specs.EfficiencyRating {
+			if ssd.PriceCents < bestSSD.PriceCents && ssd.Specs.CapacityGB >= bestSSD.Specs.CapacityGB {
+				bestSSD = *ssd
+			}
 			continue
 		}
 
-		if ssd.Specs.CapacityGB < bestSSD.Specs.CapacityGB {
-			continue
-		}
-
-		if ssd.PriceCents < bestSSD.PriceCents {
-			bestSSD = *ssd
-		}
 	}
 
 	if len(partsToUpdate) > 0 {
