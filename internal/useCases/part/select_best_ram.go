@@ -43,35 +43,15 @@ func (uc *SelectBestRAMUseCase) Execute(ctx context.Context, args SelectBestRAMA
 			})
 		}
 
-		if ram.Specs.PerformanceScore > bestRAM.Specs.PerformanceScore {
-			bestRAM = *ram
-			continue
-		}
-
 		if ram.Specs.PerformanceScore < bestRAM.Specs.PerformanceScore {
 			continue
 		}
 
-		if ram.Specs.CasLatency < bestRAM.Specs.CasLatency {
-			bestRAM = *ram
+		if ram.Specs.PerformanceScore >= bestRAM.Specs.PerformanceScore && ram.Specs.CasLatency <= bestRAM.Specs.CasLatency {
+			if ram.PriceCents < bestRAM.PriceCents && ram.Specs.CapacityGB >= bestRAM.Specs.CapacityGB {
+				bestRAM = *ram
+			}
 			continue
-		}
-
-		if ram.Specs.CasLatency > bestRAM.Specs.CasLatency {
-			continue
-		}
-
-		if ram.Specs.CapacityGB > bestRAM.Specs.CapacityGB {
-			bestRAM = *ram
-			continue
-		}
-
-		if ram.Specs.CapacityGB < bestRAM.Specs.CapacityGB {
-			continue
-		}
-
-		if ram.PriceCents < bestRAM.PriceCents {
-			bestRAM = *ram
 		}
 	}
 
