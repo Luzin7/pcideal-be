@@ -40,18 +40,17 @@ func (uc *SelectBestMOBOUseCase) Execute(ctx context.Context, args SelectBestMOB
 			})
 		}
 
-		if mobo.Specs.TierScore > bestMOBO.Specs.TierScore {
-			bestMOBO = *mobo
-			continue
-		}
-
 		if mobo.Specs.TierScore < bestMOBO.Specs.TierScore {
 			continue
 		}
 
-		if mobo.PriceCents < bestMOBO.PriceCents {
-			bestMOBO = *mobo
+		if mobo.Specs.TierScore >= bestMOBO.Specs.TierScore {
+			if mobo.PriceCents < bestMOBO.PriceCents {
+				bestMOBO = *mobo
+			}
+			continue
 		}
+
 	}
 
 	if len(partsToUpdate) > 0 {
