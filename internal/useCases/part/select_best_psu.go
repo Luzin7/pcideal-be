@@ -40,18 +40,17 @@ func (uc *SelectBestPSUUseCase) Execute(ctx context.Context, args SelectBestPSUA
 			})
 		}
 
-		if psu.Specs.EfficiencyRating > bestPSU.Specs.EfficiencyRating {
-			bestPSU = *psu
-			continue
-		}
-
 		if psu.Specs.EfficiencyRating < bestPSU.Specs.EfficiencyRating {
 			continue
 		}
 
-		if psu.PriceCents < bestPSU.PriceCents {
-			bestPSU = *psu
+		if psu.Specs.EfficiencyRating >= bestPSU.Specs.EfficiencyRating {
+			if psu.PriceCents < bestPSU.PriceCents {
+				bestPSU = *psu
+			}
+			continue
 		}
+
 	}
 
 	if len(partsToUpdate) > 0 {
