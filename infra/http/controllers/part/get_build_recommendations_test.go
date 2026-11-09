@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Luzin7/pcideal-be/infra/http/middlewares"
 	"github.com/Luzin7/pcideal-be/infra/http/presenters"
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
 	"github.com/Luzin7/pcideal-be/internal/dto"
@@ -94,7 +95,7 @@ func performRecommendationRequest(t *testing.T, controller *GetBuildRecommendati
 func TestRecommendationsDoNotGenerateAfterLimitReached(t *testing.T) {
 	limiter := newFakeBuildAttemptLimiter(4)
 	generator := &fakeBuildRecommendationsGenerator{}
-	controller := NewGetBuildRecommendationsController(generator, limiter)
+	controller := NewGetBuildRecommendationsController(generator, limiter, middlewares.ClientIPResolver{})
 
 	for i := 0; i < 4; i++ {
 		if recorder := performRecommendationRequest(t, controller, context.Background()); recorder.Code != http.StatusOK {
@@ -115,7 +116,7 @@ func TestRecommendationsDoNotGenerateAfterLimitReached(t *testing.T) {
 func TestGenerationFailureReleasesClaimedSlot(t *testing.T) {
 	limiter := newFakeBuildAttemptLimiter(1)
 	generator := &fakeBuildRecommendationsGenerator{err: errors.ErrNoCompatibleParts("CPU")}
-	controller := NewGetBuildRecommendationsController(generator, limiter)
+	controller := NewGetBuildRecommendationsController(generator, limiter, middlewares.ClientIPResolver{})
 
 	recorder := performRecommendationRequest(t, controller, context.Background())
 	if recorder.Code != http.StatusUnprocessableEntity {
@@ -136,7 +137,7 @@ func TestGenerationFailureReleasesClaimedSlot(t *testing.T) {
 func TestCanceledRequestContextStillReleasesClaimedSlot(t *testing.T) {
 	limiter := newFakeBuildAttemptLimiter(1)
 	generator := &fakeBuildRecommendationsGenerator{err: errors.ErrNoCompatibleParts("CPU")}
-	controller := NewGetBuildRecommendationsController(generator, limiter)
+	controller := NewGetBuildRecommendationsController(generator, limiter, middlewares.ClientIPResolver{})
 
 	requestContext, cancelRequest := context.WithCancel(context.Background())
 	cancelRequest()
@@ -160,7 +161,7 @@ func TestCanceledRequestContextStillReleasesClaimedSlot(t *testing.T) {
 func TestSuccessfulClaimPersists(t *testing.T) {
 	limiter := newFakeBuildAttemptLimiter(4)
 	generator := &fakeBuildRecommendationsGenerator{}
-	controller := NewGetBuildRecommendationsController(generator, limiter)
+	controller := NewGetBuildRecommendationsController(generator, limiter, middlewares.ClientIPResolver{})
 
 	recorder := performRecommendationRequest(t, controller, context.Background())
 

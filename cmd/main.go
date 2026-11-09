@@ -14,6 +14,7 @@ import (
 	"github.com/Luzin7/pcideal-be/infra/external"
 	"github.com/Luzin7/pcideal-be/infra/http/controllers"
 	partControllers "github.com/Luzin7/pcideal-be/infra/http/controllers/part"
+	"github.com/Luzin7/pcideal-be/infra/http/middlewares"
 	"github.com/Luzin7/pcideal-be/infra/http/routes"
 	"github.com/Luzin7/pcideal-be/infra/repositories"
 	"github.com/Luzin7/pcideal-be/internal/useCases/buildAttempt"
@@ -40,13 +41,18 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	if isProduction && os.Getenv("TRUSTED_PROXIES") == "" {
-		log.Println("WARNING: TRUSTED_PROXIES is empty in production; every client behind the proxy shares one rate-limit bucket. Set TRUSTED_PROXIES to the proxy CIDRs.")
+	if isProduction && os.Getenv("TRUSTED_PROXIES") == "" && os.Getenv("CLIENT_IP_HEADER") == "" {
+		log.Println("WARNING: neither TRUSTED_PROXIES nor CLIENT_IP_HEADER is set in production; every client behind the proxy shares one rate-limit bucket. Set CLIENT_IP_HEADER=CF-Connecting-IP behind Cloudflare, or TRUSTED_PROXIES to the proxy CIDRs.")
 	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
+	}
+
+	clientIPResolver, clientIPErr := middlewares.NewClientIPResolver(os.Getenv("CLIENT_IP_HEADER"))
+	if clientIPErr != nil {
+		log.Fatalf("Erro ao configurar CLIENT_IP_HEADER: %v", clientIPErr)
 	}
 
 	connectionString := os.Getenv("DATABASE_URL")
@@ -115,10 +121,16 @@ func main() {
 
 	getAllPartsController := partControllers.NewGetAllPartsController(getAllPartsUC)
 	getPartByIDController := partControllers.NewGetPartByIDController(getPartByIDUC)
-	getBuildRecsController := partControllers.NewGetBuildRecommendationsController(generateBuildRecsUC, buildAttemptService)
+	getBuildRecsController := partControllers.NewGetBuildRecommendationsController(generateBuildRecsUC, buildAttemptService, clientIPResolver)
 	healthController := controllers.NewHealthController(db.Client(), uniqueIndexReady)
 
-	router, err := routes.SetupRouter(getAllPartsController, getPartByIDController, getBuildRecsController, healthController)
+	router, err := routes.SetupRouter(routes.Dependencies{
+		GetAllPartsController:  getAllPartsController,
+		GetPartByIDController:  getPartByIDController,
+		GetBuildRecsController: getBuildRecsController,
+		HealthController:       healthController,
+		ClientIPResolver:       clientIPResolver,
+	})
 	if err != nil {
 		log.Fatalf("Erro ao configurar rotas: %v", err)
 	}

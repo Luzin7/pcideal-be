@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Luzin7/pcideal-be/infra/http/middlewares"
 	"github.com/Luzin7/pcideal-be/infra/http/presenters"
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
 	"github.com/Luzin7/pcideal-be/internal/dto"
@@ -25,23 +24,30 @@ type BuildAttemptLimiter interface {
 	ReleaseBuildAttempt(ctx context.Context, buildAttempt *entity.BuildAttempt) *errors.ErrService
 }
 
+type ClientIPResolver interface {
+	Resolve(c *gin.Context) string
+}
+
 type GetBuildRecommendationsController struct {
 	generateBuild BuildRecommendationsGenerator
 	buildAttempts BuildAttemptLimiter
+	clientIP      ClientIPResolver
 }
 
 func NewGetBuildRecommendationsController(
 	generateBuild BuildRecommendationsGenerator,
 	buildAttempts BuildAttemptLimiter,
+	clientIP ClientIPResolver,
 ) *GetBuildRecommendationsController {
 	return &GetBuildRecommendationsController{
 		generateBuild: generateBuild,
 		buildAttempts: buildAttempts,
+		clientIP:      clientIP,
 	}
 }
 
 func (c *GetBuildRecommendationsController) Handle(ctx *gin.Context) {
-	clientIP := middlewares.GetClientIP(ctx)
+	clientIP := c.clientIP.Resolve(ctx)
 
 	var req dto.GenerateBuildRecommendationsDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {

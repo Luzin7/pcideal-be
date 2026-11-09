@@ -9,10 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetClientIP(c *gin.Context) string {
-	return c.ClientIP()
-}
-
 func ConfigureTrustedProxies(router *gin.Engine, raw string) error {
 	if err := router.SetTrustedProxies(parseTrustedProxies(raw)); err != nil {
 		return fmt.Errorf("invalid TRUSTED_PROXIES: %w", err)
@@ -35,15 +31,15 @@ func parseTrustedProxies(raw string) []string {
 	return proxies
 }
 
-func IPLoggingMiddleware() gin.HandlerFunc {
+func IPLoggingMiddleware(clientIP ClientIPResolver) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
-		clientIP := GetClientIP(c)
+		ip := clientIP.Resolve(c)
 
 		c.Next()
 
 		log.Printf("[IP] %s - %s %s - %d - %v",
-			clientIP,
+			ip,
 			c.Request.Method,
 			c.Request.URL.Path,
 			c.Writer.Status(),

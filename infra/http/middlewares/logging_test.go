@@ -16,7 +16,7 @@ func TestGetClientIPIgnoresForwardedHeaders(t *testing.T) {
 		t.Fatalf("failed to set trusted proxies: %v", err)
 	}
 	router.GET("/ip", func(c *gin.Context) {
-		c.String(http.StatusOK, GetClientIP(c))
+		c.String(http.StatusOK, ClientIPResolver{}.Resolve(c))
 	})
 
 	request := httptest.NewRequest(http.MethodGet, "/ip", nil)
@@ -40,7 +40,7 @@ func TestGetClientIPHonorsForwardedHeadersFromTrustedProxy(t *testing.T) {
 		t.Fatalf("failed to set trusted proxies: %v", err)
 	}
 	router.GET("/ip", func(c *gin.Context) {
-		c.String(http.StatusOK, GetClientIP(c))
+		c.String(http.StatusOK, ClientIPResolver{}.Resolve(c))
 	})
 
 	request := httptest.NewRequest(http.MethodGet, "/ip", nil)
