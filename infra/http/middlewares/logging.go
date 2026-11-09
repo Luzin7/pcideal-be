@@ -1,8 +1,8 @@
 package middlewares
 
 import (
+	"fmt"
 	"log"
-	"net"
 	"strings"
 	"time"
 
@@ -10,24 +10,29 @@ import (
 )
 
 func GetClientIP(c *gin.Context) string {
-	xff := c.GetHeader("X-Forwarded-For")
-	if xff != "" {
-		ip := strings.TrimSpace(strings.Split(xff, ",")[0])
-		if isValidIP(ip) {
-			return ip
-		}
-	}
-
-	realIP := c.GetHeader("X-Real-IP")
-	if realIP != "" && isValidIP(realIP) {
-		return realIP
-	}
-
 	return c.ClientIP()
 }
 
-func isValidIP(ip string) bool {
-	return net.ParseIP(ip) != nil
+func ConfigureTrustedProxies(router *gin.Engine, raw string) error {
+	if err := router.SetTrustedProxies(parseTrustedProxies(raw)); err != nil {
+		return fmt.Errorf("invalid TRUSTED_PROXIES: %w", err)
+	}
+
+	return nil
+}
+
+func parseTrustedProxies(raw string) []string {
+	var proxies []string
+
+	for _, value := range strings.Split(raw, ",") {
+		proxy := strings.TrimSpace(value)
+		if proxy == "" {
+			continue
+		}
+		proxies = append(proxies, proxy)
+	}
+
+	return proxies
 }
 
 func IPLoggingMiddleware() gin.HandlerFunc {

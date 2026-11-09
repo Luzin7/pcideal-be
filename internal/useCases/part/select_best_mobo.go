@@ -4,9 +4,7 @@ import (
 	"context"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
-	"github.com/Luzin7/pcideal-be/internal/dto"
 	"github.com/Luzin7/pcideal-be/internal/errors"
-	"github.com/Luzin7/pcideal-be/internal/util"
 )
 
 type SelectBestMOBOUseCase struct {
@@ -24,40 +22,14 @@ type SelectBestMOBOArgs struct {
 }
 
 func (uc *SelectBestMOBOUseCase) Execute(ctx context.Context, args SelectBestMOBOArgs) (entity.Part, *errors.ErrService) {
-	var bestMOBO entity.Part
-	var partsToUpdate []dto.ProductLinkToUpdate
+	queueStalePartsUpdate(uc.UpdatePartsUseCase, args.mobos)
 
-	for i, mobo := range args.mobos {
-		if i == 0 {
-			bestMOBO = *mobo
-			continue
-		}
-
-		if util.PartNeedToUpdate(mobo) {
-			partsToUpdate = append(partsToUpdate, dto.ProductLinkToUpdate{
-				ID:  mobo.ID.Hex(),
-				Url: mobo.URL,
-			})
-		}
-
-		if mobo.Specs.TierScore < bestMOBO.Specs.TierScore {
-			continue
-		}
-
-		if mobo.Specs.TierScore >= bestMOBO.Specs.TierScore {
-			if mobo.PriceCents < bestMOBO.PriceCents {
-				bestMOBO = *mobo
-			}
-			continue
-		}
-
+	bestMOBO := chooseBestPart(args.mobos, partRanking{
+		score: func(part *entity.Part) int { return int(part.Specs.TierScore) },
+	})
+	if bestMOBO == nil {
+		return entity.Part{}, nil
 	}
 
-	if len(partsToUpdate) > 0 {
-		go func() {
-			uc.UpdatePartsUseCase.Execute(context.Background(), partsToUpdate, "kabum")
-		}()
-	}
-
-	return bestMOBO, nil
+	return *bestMOBO, nil
 }

@@ -1,30 +1,42 @@
 package part
 
 import (
+	"context"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/Luzin7/pcideal-be/infra/http/middlewares"
+	"github.com/Luzin7/pcideal-be/infra/http/presenters"
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
 	"github.com/Luzin7/pcideal-be/internal/dto"
 	"github.com/Luzin7/pcideal-be/internal/errors"
-	"github.com/Luzin7/pcideal-be/internal/useCases/buildAttempt"
-	"github.com/Luzin7/pcideal-be/internal/useCases/part"
 	"github.com/gin-gonic/gin"
 )
 
+const releaseBuildAttemptTimeout = 2 * time.Second
+
+type BuildRecommendationsGenerator interface {
+	Execute(ctx context.Context, args dto.GenerateBuildRecommendationsDTO) (*presenters.RecommendedBuildsPresenter, *errors.ErrService)
+}
+
+type BuildAttemptLimiter interface {
+	ClaimBuildAttempt(ctx context.Context, buildAttempt *entity.BuildAttempt) *errors.ErrService
+	ReleaseBuildAttempt(ctx context.Context, buildAttempt *entity.BuildAttempt) *errors.ErrService
+}
+
 type GetBuildRecommendationsController struct {
-	generateBuildUC     *part.GenerateBuildRecommendationsUseCase
-	buildAttemptService *buildAttempt.BuildAttemptService
+	generateBuild BuildRecommendationsGenerator
+	buildAttempts BuildAttemptLimiter
 }
 
 func NewGetBuildRecommendationsController(
-	generateBuildUC *part.GenerateBuildRecommendationsUseCase,
-	buildAttemptService *buildAttempt.BuildAttemptService,
+	generateBuild BuildRecommendationsGenerator,
+	buildAttempts BuildAttemptLimiter,
 ) *GetBuildRecommendationsController {
 	return &GetBuildRecommendationsController{
-		generateBuildUC:     generateBuildUC,
-		buildAttemptService: buildAttemptService,
+		generateBuild: generateBuild,
+		buildAttempts: buildAttempts,
 	}
 }
 
@@ -33,43 +45,47 @@ func (c *GetBuildRecommendationsController) Handle(ctx *gin.Context) {
 
 	var req dto.GenerateBuildRecommendationsDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": "Invalid request body"})
+		respondWithError(ctx, errors.ErrInvalidRequestBody())
 		return
 	}
 
-	since := time.Now().Add(-1 * time.Hour)
-	count, err := c.buildAttemptService.CountBuildAttemptsByIP(clientIP, since)
+	if err := req.Validate(); err != nil {
+		respondWithError(ctx, err)
+		return
+	}
+
+	buildAttempt := entity.NewBuildAttempt(
+		clientIP, req.UsageType, req.BudgetCents, req.CpuPreference, req.GpuPreference,
+	)
+
+	if err := c.buildAttempts.ClaimBuildAttempt(ctx.Request.Context(), buildAttempt); err != nil {
+		respondWithError(ctx, err)
+		return
+	}
+
+	build, err := c.generateBuild.Execute(ctx.Request.Context(), req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"code": 500, "message": "Internal server error"})
-		return
-	}
-
-	const maxAttempts = 4
-	if count >= maxAttempts {
-		ctx.JSON(http.StatusTooManyRequests, gin.H{"code": errors.ErrBuildAttemptLimit().StatusCode, "message": errors.ErrBuildAttemptLimit().Message})
-		return
-	}
-
-	buildAttempt := &entity.BuildAttempt{
-		IP:      clientIP,
-		Goal:    req.UsageType,
-		Budget:  int64(req.Budget),
-		CPUPref: req.CpuPreference,
-		GPUPref: req.GpuPreference,
-	}
-	_ = c.buildAttemptService.CreateBuildAttempt(buildAttempt)
-
-	part, err := c.generateBuildUC.Execute(ctx, dto.GenerateBuildRecommendationsDTO{
-		UsageType:     req.UsageType,
-		CpuPreference: req.CpuPreference,
-		GpuPreference: req.GpuPreference,
-		Budget:        req.Budget,
-	})
-	if err != nil {
-		ctx.JSON(err.StatusCode, gin.H{"code": err.StatusCode, "message": err.Message})
+		releaseBuildAttempt(ctx, c.buildAttempts, buildAttempt)
+		respondWithError(ctx, err)
 		return
 	}
 
 	ctx.Header("Content-Type", "application/json")
-	ctx.JSON(http.StatusOK, gin.H{"data": part})
+	ctx.JSON(http.StatusOK, gin.H{"data": build})
+}
+
+func releaseBuildAttempt(ctx *gin.Context, limiter BuildAttemptLimiter, buildAttempt *entity.BuildAttempt) {
+	releaseContext, cancelRelease := context.WithTimeout(
+		context.WithoutCancel(ctx.Request.Context()),
+		releaseBuildAttemptTimeout,
+	)
+	defer cancelRelease()
+
+	if err := limiter.ReleaseBuildAttempt(releaseContext, buildAttempt); err != nil {
+		log.Printf("[GetBuildRecommendations] failed to release build attempt slot: %v", err)
+	}
+}
+
+func respondWithError(ctx *gin.Context, err *errors.ErrService) {
+	ctx.JSON(err.StatusCode, gin.H{"code": err.StatusCode, "message": err.Message})
 }

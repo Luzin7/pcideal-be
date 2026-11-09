@@ -9,10 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// TestIntegration_CompleteComponentSelection testa o fluxo completo de seleção
-// de múltiplos componentes simulando um cenário real
 func TestIntegration_CompleteComponentSelection(t *testing.T) {
-	// Arrange - Setup dos use cases
 	updateUC := newMockUpdatePartsUseCase()
 	cpuUC := NewSelectBestCPUUseCase(updateUC)
 	gpuUC := NewSelectBestGPUUseCase(updateUC)
@@ -20,7 +17,6 @@ func TestIntegration_CompleteComponentSelection(t *testing.T) {
 	psuUC := NewSelectBestPSUUseCase(updateUC)
 	moboUC := NewSelectBestMOBOUseCase(updateUC)
 
-	// Dados de teste - Componentes para um build gaming de médio orçamento
 	cpus := []*entity.Part{
 		{
 			ID:    primitive.NewObjectID(),
@@ -31,7 +27,7 @@ func TestIntegration_CompleteComponentSelection(t *testing.T) {
 				Socket:           "AM4",
 				PerformanceScore: 80,
 			},
-			PriceCents: 180000, // R$ 1800
+			PriceCents: 180000,
 			UpdatedAt:  time.Now(),
 		},
 		{
@@ -43,7 +39,7 @@ func TestIntegration_CompleteComponentSelection(t *testing.T) {
 				Socket:           "LGA1700",
 				PerformanceScore: 75,
 			},
-			PriceCents: 170000, // R$ 1700
+			PriceCents: 170000,
 			UpdatedAt:  time.Now(),
 		},
 	}
@@ -58,7 +54,7 @@ func TestIntegration_CompleteComponentSelection(t *testing.T) {
 				PerformanceScore: 80,
 				VramGB:           8,
 			},
-			PriceCents: 300000, // R$ 3000
+			PriceCents: 300000,
 			UpdatedAt:  time.Now(),
 		},
 		{
@@ -70,7 +66,7 @@ func TestIntegration_CompleteComponentSelection(t *testing.T) {
 				PerformanceScore: 82,
 				VramGB:           12,
 			},
-			PriceCents: 310000, // R$ 3100
+			PriceCents: 310000,
 			UpdatedAt:  time.Now(),
 		},
 	}
@@ -86,7 +82,7 @@ func TestIntegration_CompleteComponentSelection(t *testing.T) {
 				MemorySpeedMHz:   3200,
 				CasLatency:       16,
 			},
-			PriceCents: 30000, // R$ 300
+			PriceCents: 30000,
 			UpdatedAt:  time.Now(),
 		},
 	}
@@ -101,7 +97,7 @@ func TestIntegration_CompleteComponentSelection(t *testing.T) {
 				Wattage:          650,
 				EfficiencyRating: 80,
 			},
-			PriceCents: 40000, // R$ 400
+			PriceCents: 40000,
 			UpdatedAt:  time.Now(),
 		},
 	}
@@ -116,19 +112,17 @@ func TestIntegration_CompleteComponentSelection(t *testing.T) {
 				Socket:    "AM4",
 				TierScore: 7,
 			},
-			PriceCents: 80000, // R$ 800
+			PriceCents: 80000,
 			UpdatedAt:  time.Now(),
 		},
 	}
 
-	// Act - Selecionar os melhores componentes
 	selectedCPU, errCPU := cpuUC.Execute(context.Background(), SelectBestCPUArgs{cpus: cpus})
 	selectedGPU, errGPU := gpuUC.Execute(context.Background(), SelectBestGPUArgs{gpus: gpus})
 	selectedRAM, errRAM := ramUC.Execute(context.Background(), SelectBestRAMArgs{rams: rams})
 	selectedPSU, errPSU := psuUC.Execute(context.Background(), SelectBestPSUArgs{psus: psus})
 	selectedMOBO, errMOBO := moboUC.Execute(context.Background(), SelectBestMOBOArgs{mobos: mobos})
 
-	// Assert - Verificar que não houve erros
 	if errCPU != nil {
 		t.Fatalf("Error selecting CPU: %v", errCPU)
 	}
@@ -145,7 +139,6 @@ func TestIntegration_CompleteComponentSelection(t *testing.T) {
 		t.Fatalf("Error selecting MOBO: %v", errMOBO)
 	}
 
-	// Assert - Verificar seleções
 	t.Run("CPU Selection", func(t *testing.T) {
 		if selectedCPU.Model != "Ryzen 5 5600X" {
 			t.Errorf("Expected Ryzen 5 5600X (better performance), got %s", selectedCPU.Model)
@@ -176,7 +169,6 @@ func TestIntegration_CompleteComponentSelection(t *testing.T) {
 		}
 	})
 
-	// Assert - Verificar total do build
 	t.Run("Total Build Cost", func(t *testing.T) {
 		totalCents := selectedCPU.PriceCents +
 			selectedGPU.PriceCents +
@@ -184,7 +176,7 @@ func TestIntegration_CompleteComponentSelection(t *testing.T) {
 			selectedPSU.PriceCents +
 			selectedMOBO.PriceCents
 
-		expectedTotal := int64(600000) // R$ 6000 aproximadamente
+		expectedTotal := int64(600000)
 		if totalCents < expectedTotal-100000 || totalCents > expectedTotal+100000 {
 			t.Errorf("Total build cost %d is outside expected range around %d", totalCents, expectedTotal)
 		}
@@ -199,7 +191,6 @@ func TestIntegration_CompleteComponentSelection(t *testing.T) {
 	})
 }
 
-// TestIntegration_CompatibilityCheck verifica se componentes selecionados são compatíveis
 func TestIntegration_CompatibilityCheck(t *testing.T) {
 	updateUC := newMockUpdatePartsUseCase()
 	cpuUC := NewSelectBestCPUUseCase(updateUC)
@@ -220,7 +211,6 @@ func TestIntegration_CompatibilityCheck(t *testing.T) {
 		},
 	}
 
-	// Placas-mãe com diferentes sockets
 	mobosAM4 := []*entity.Part{
 		{
 			ID:    primitive.NewObjectID(),
@@ -251,13 +241,10 @@ func TestIntegration_CompatibilityCheck(t *testing.T) {
 		},
 	}
 
-	// Selecionar CPU
 	selectedCPU, _ := cpuUC.Execute(context.Background(), SelectBestCPUArgs{cpus: cpus})
 
-	// Selecionar MOBO compatível
 	selectedMOBOCompatible, _ := moboUC.Execute(context.Background(), SelectBestMOBOArgs{mobos: mobosAM4})
 
-	// Selecionar MOBO incompatível
 	selectedMOBOIncompatible, _ := moboUC.Execute(context.Background(), SelectBestMOBOArgs{mobos: mobosLGA1700})
 
 	t.Run("Compatible Socket", func(t *testing.T) {
@@ -276,11 +263,9 @@ func TestIntegration_CompatibilityCheck(t *testing.T) {
 	})
 }
 
-// TestIntegration_BudgetAllocation testa alocação realista de orçamento
 func TestIntegration_BudgetAllocation(t *testing.T) {
-	totalBudgetCents := int64(500000) // R$ 5000
+	totalBudgetCents := int64(500000)
 
-	// Usar estratégia gaming de médio orçamento
 	strategy := entity.GamingMidBudgetStrategy{}
 	allocations := strategy.GetAllocations()
 
@@ -294,24 +279,22 @@ func TestIntegration_BudgetAllocation(t *testing.T) {
 		t.Logf("Strategy: %s", strategy.GetName())
 		t.Logf("")
 		t.Logf("Component Budgets:")
-		
+
 		for partType, budget := range budgetBreakdown {
 			percentage := allocations[partType] * 100
 			t.Logf("  %s: R$ %.2f (%.1f%%)", partType, float64(budget)/100, percentage)
 		}
 
-		// Verificar que GPU tem a maior alocação (estratégia gaming)
 		if budgetBreakdown[entity.TypeGPU] <= budgetBreakdown[entity.TypeCPU] {
 			t.Error("Gaming strategy should allocate more budget to GPU than CPU")
 		}
 
-		// Verificar soma total
 		sum := int64(0)
 		for _, budget := range budgetBreakdown {
 			sum += budget
 		}
-		
-		tolerance := int64(100) // 1 real de tolerância por arredondamento
+
+		tolerance := int64(100)
 		if sum < totalBudgetCents-tolerance || sum > totalBudgetCents+tolerance {
 			t.Errorf("Budget sum %d should be close to total %d", sum, totalBudgetCents)
 		}

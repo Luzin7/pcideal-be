@@ -8,10 +8,9 @@ type RecommendedBuildsPresenter struct {
 
 type RecommendationBuild struct {
 	BuildType  string     `json:"build_type"`
-	Budget     int64      `json:"budget"`
-	BuildValue int64      `json:"build_value"`
+	Budget     int64      `json:"budget_cents"`
+	BuildValue int64      `json:"build_value_cents"`
 	Parts      BuildParts `json:"parts"`
-	Summary    string     `json:"summary"`
 }
 
 type BuildParts struct {

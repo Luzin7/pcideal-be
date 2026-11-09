@@ -1,6 +1,9 @@
 package routes
 
 import (
+	"os"
+
+	"github.com/Luzin7/pcideal-be/infra/http/controllers"
 	partControllers "github.com/Luzin7/pcideal-be/infra/http/controllers/part"
 	"github.com/Luzin7/pcideal-be/infra/http/middlewares"
 	"github.com/gin-contrib/cors"
@@ -11,9 +14,13 @@ func SetupRouter(
 	getAllPartsController *partControllers.GetAllPartsController,
 	getPartByIDController *partControllers.GetPartByIDController,
 	getBuildRecsController *partControllers.GetBuildRecommendationsController,
-) *gin.Engine {
+	healthController *controllers.HealthController,
+) (*gin.Engine, error) {
 	router := gin.Default()
-	router.SetTrustedProxies(nil)
+
+	if err := middlewares.ConfigureTrustedProxies(router, os.Getenv("TRUSTED_PROXIES")); err != nil {
+		return nil, err
+	}
 
 	router.Use(middlewares.IPLoggingMiddleware())
 	router.Use(middlewares.SecurityHeadersMiddleware())
@@ -21,6 +28,8 @@ func SetupRouter(
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{"http://localhost:3000", "https://www.pcideal.online", "https://pcideal.online"}
 	router.Use(cors.New(config))
+
+	router.GET("/health", healthController.Handle)
 
 	api := router.Group("/api")
 
@@ -35,5 +44,5 @@ func SetupRouter(
 		builds.POST("/recommendations", getBuildRecsController.Handle)
 	}
 
-	return router
+	return router, nil
 }
