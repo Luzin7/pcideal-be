@@ -5,73 +5,58 @@ import (
 	"time"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
+	"github.com/Luzin7/pcideal-be/internal/domain/repository"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
+const maxBuildAttemptsPerWindow = 4
 
 type BuildAttemptRepository struct {
 	collection *mongo.Collection
 }
 
 func NewBuildAttemptRepository(client *mongo.Database) *BuildAttemptRepository {
-	collection := client.Collection("build_attempts")
-
 	return &BuildAttemptRepository{
-		collection: collection,
+		collection: client.Collection("build_attempts"),
 	}
 }
 
-func (buildattemptRepository *BuildAttemptRepository) CreateBuildAttempt(ctx context.Context, buildattempt *entity.BuildAttempt) error {
-
-	_, err := buildattemptRepository.collection.InsertOne(ctx, buildattempt)
-
-	if err != nil {
+func (buildattemptRepository *BuildAttemptRepository) ClaimBuildAttempt(ctx context.Context, buildattempt *entity.BuildAttempt) error {
+	return claimAttemptSlot(ctx, buildattempt, func(ctx context.Context, attempt *entity.BuildAttempt) error {
+		_, err := buildattemptRepository.collection.InsertOne(ctx, attempt)
 		return err
-	}
-
-	return nil
+	})
 }
 
-func (buildattemptRepository *BuildAttemptRepository) CountBuildAttemptsByIP(ctx context.Context, ip string, since time.Time) (int, error) {
-
-	filter := bson.M{
-		"ip":         ip,
-		"created_at": bson.M{"$gte": since},
-	}
-
-	count, err := buildattemptRepository.collection.CountDocuments(ctx, filter)
-	if err != nil {
-		return 0, err
-	}
-
-	return int(count), nil
+func (buildattemptRepository *BuildAttemptRepository) ReleaseBuildAttempt(ctx context.Context, buildattempt *entity.BuildAttempt) error {
+	_, err := buildattemptRepository.collection.DeleteOne(ctx, buildAttemptReleaseFilter(buildattempt))
+	return err
 }
 
-func (buildattemptRepository *BuildAttemptRepository) GetBuildAttemptsByIP(ctx context.Context, ip string, since time.Time) ([]*entity.BuildAttempt, error) {
-
-	filter := bson.M{
-		"ip":         ip,
-		"created_at": bson.M{"$gte": since},
+func buildAttemptReleaseFilter(attempt *entity.BuildAttempt) bson.M {
+	return bson.M{
+		"ip":           attempt.IP,
+		"window_start": attempt.WindowStart,
+		"slot":         attempt.Slot,
 	}
+}
 
-	cursor, err := buildattemptRepository.collection.Find(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
+func claimAttemptSlot(ctx context.Context, attempt *entity.BuildAttempt, insert func(context.Context, *entity.BuildAttempt) error) error {
+	windowStart := attempt.CreatedAt.UTC().Truncate(time.Hour)
 
-	var buildattempts []*entity.BuildAttempt
-	for cursor.Next(ctx) {
-		var buildattempt entity.BuildAttempt
-		if err := cursor.Decode(&buildattempt); err != nil {
-			return nil, err
+	for slot := 0; slot < maxBuildAttemptsPerWindow; slot++ {
+		attempt.WindowStart = windowStart
+		attempt.Slot = slot
+
+		err := insert(ctx, attempt)
+		if err == nil {
+			return nil
 		}
-		buildattempts = append(buildattempts, &buildattempt)
+		if !mongo.IsDuplicateKeyError(err) {
+			return err
+		}
 	}
 
-	if err := cursor.Err(); err != nil {
-		return nil, err
-	}
-
-	return buildattempts, nil
+	return repository.ErrBuildAttemptLimitReached
 }

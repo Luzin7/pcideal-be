@@ -2,13 +2,14 @@ package repository
 
 import (
 	"context"
-	"time"
+	stderrors "errors"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
 )
 
+var ErrBuildAttemptLimitReached = stderrors.New("build attempt limit reached")
+
 type BuildAttemptRepository interface {
-	CreateBuildAttempt(ctx context.Context, buildAttempt *entity.BuildAttempt) error
-	CountBuildAttemptsByIP(ctx context.Context, ip string, since time.Time) (int, error)
-	GetBuildAttemptsByIP(ctx context.Context, ip string, since time.Time) ([]*entity.BuildAttempt, error)
+	ClaimBuildAttempt(ctx context.Context, buildAttempt *entity.BuildAttempt) error
+	ReleaseBuildAttempt(ctx context.Context, buildAttempt *entity.BuildAttempt) error
 }

@@ -4,9 +4,7 @@ import (
 	"context"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/entity"
-	"github.com/Luzin7/pcideal-be/internal/dto"
 	"github.com/Luzin7/pcideal-be/internal/errors"
-	"github.com/Luzin7/pcideal-be/internal/util"
 )
 
 type SelectBestPSUUseCase struct {
@@ -24,41 +22,14 @@ type SelectBestPSUArgs struct {
 }
 
 func (uc *SelectBestPSUUseCase) Execute(ctx context.Context, args SelectBestPSUArgs) (entity.Part, *errors.ErrService) {
-	var bestPSU entity.Part
-	var partsToUpdate []dto.ProductLinkToUpdate
+	queueStalePartsUpdate(uc.UpdatePartsUseCase, args.psus)
 
-	for i, psu := range args.psus {
-		if i == 0 {
-			bestPSU = *psu
-			continue
-		}
-
-		if util.PartNeedToUpdate(psu) {
-			partsToUpdate = append(partsToUpdate, dto.ProductLinkToUpdate{
-				ID:  psu.ID.Hex(),
-				Url: psu.URL,
-			})
-		}
-
-		if psu.Specs.EfficiencyRating > bestPSU.Specs.EfficiencyRating {
-			bestPSU = *psu
-			continue
-		}
-
-		if psu.Specs.EfficiencyRating < bestPSU.Specs.EfficiencyRating {
-			continue
-		}
-
-		if psu.PriceCents < bestPSU.PriceCents {
-			bestPSU = *psu
-		}
+	bestPSU := chooseBestPart(args.psus, partRanking{
+		score: func(part *entity.Part) int { return int(part.Specs.EfficiencyRating) },
+	})
+	if bestPSU == nil {
+		return entity.Part{}, nil
 	}
 
-	if len(partsToUpdate) > 0 {
-		go func() {
-			uc.UpdatePartsUseCase.Execute(context.Background(), partsToUpdate, "kabum")
-		}()
-	}
-
-	return bestPSU, nil
+	return *bestPSU, nil
 }

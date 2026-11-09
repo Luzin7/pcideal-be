@@ -16,16 +16,15 @@ func NewGetAllPartsUseCase(partRepository repository.PartRepository) *GetAllPart
 	return &GetAllPartsUseCase{partRepository: partRepository}
 }
 
-func (uc *GetAllPartsUseCase) Execute() ([]*entity.Part, *errors.ErrService) {
-	ctx := context.Background()
-	parts, err := uc.partRepository.GetAllParts(ctx)
+func (uc *GetAllPartsUseCase) Execute(ctx context.Context, args repository.FindAllPartsArgs) ([]*entity.Part, *errors.ErrService) {
+	parts, err := uc.partRepository.GetAllParts(ctx, args)
 
 	if err != nil {
 		return nil, errors.ErrInternalServerError()
 	}
 
-	if len(parts) == 0 {
-		return nil, errors.ErrNotFound("parts")
+	if parts == nil {
+		return []*entity.Part{}, nil
 	}
 
 	return parts, nil

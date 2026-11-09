@@ -99,15 +99,48 @@ func ErrMissingGoal() *ErrService {
 }
 
 func ErrMissingBudget() *ErrService {
-	return New("Required parameter 'budget' not provided", 400)
+	return New("Required parameter 'budget_cents' not provided", 400)
 }
 
 func ErrInvalidSince() *ErrService {
 	return New("'since' cannot be a future date", 400)
 }
 
+func ErrInvalidLimit() *ErrService {
+	return New("'limit' must be a positive integer up to the allowed maximum", 400)
+}
+
+func ErrInvalidOffset() *ErrService {
+	return New("'offset' must be a non-negative integer", 400)
+}
+
 func ErrInvalidBudget() *ErrService {
-	return New("Budget must be greater than zero", 400)
+	return New("'budget_cents' must be greater than zero", 400)
+}
+
+func ErrInvalidRequestBody() *ErrService {
+	return New("Invalid request body", 400)
+}
+
+func ErrInvalidUsageType(usageType string) *ErrService {
+	return New(
+		fmt.Sprintf("Invalid 'usage_type': %s", usageType),
+		400,
+	)
+}
+
+func ErrInvalidPreference(field string) *ErrService {
+	return New(
+		fmt.Sprintf("Invalid '%s'", field),
+		400,
+	)
+}
+
+func ErrNoCompatibleParts(partType string) *ErrService {
+	return New(
+		fmt.Sprintf("No compatible %s parts found for the requested budget", partType),
+		422,
+	)
 }
 
 func ErrBuildAttemptLimit() *ErrService {
