@@ -1,44 +1,45 @@
 package middlewares
 
 import (
+	"fmt"
 	"log"
-	"net"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-func GetClientIP(c *gin.Context) string {
-	xff := c.GetHeader("X-Forwarded-For")
-	if xff != "" {
-		ip := strings.TrimSpace(strings.Split(xff, ",")[0])
-		if isValidIP(ip) {
-			return ip
+func ConfigureTrustedProxies(router *gin.Engine, raw string) error {
+	if err := router.SetTrustedProxies(parseTrustedProxies(raw)); err != nil {
+		return fmt.Errorf("invalid TRUSTED_PROXIES: %w", err)
+	}
+
+	return nil
+}
+
+func parseTrustedProxies(raw string) []string {
+	var proxies []string
+
+	for _, value := range strings.Split(raw, ",") {
+		proxy := strings.TrimSpace(value)
+		if proxy == "" {
+			continue
 		}
+		proxies = append(proxies, proxy)
 	}
 
-	realIP := c.GetHeader("X-Real-IP")
-	if realIP != "" && isValidIP(realIP) {
-		return realIP
-	}
-
-	return c.ClientIP()
+	return proxies
 }
 
-func isValidIP(ip string) bool {
-	return net.ParseIP(ip) != nil
-}
-
-func IPLoggingMiddleware() gin.HandlerFunc {
+func IPLoggingMiddleware(clientIP ClientIPResolver) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
-		clientIP := GetClientIP(c)
+		ip := clientIP.Resolve(c)
 
 		c.Next()
 
 		log.Printf("[IP] %s - %s %s - %d - %v",
-			clientIP,
+			ip,
 			c.Request.Method,
 			c.Request.URL.Path,
 			c.Writer.Status(),

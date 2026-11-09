@@ -21,8 +21,7 @@ func NewUpdatePartUseCase(partRepository repository.PartRepository, scraperClien
 	}
 }
 
-func (uc *UpdatePartUseCase) Execute(partId string) *errors.ErrService {
-	ctx := context.Background()
+func (uc *UpdatePartUseCase) Execute(ctx context.Context, partId string) *errors.ErrService {
 	part, err := uc.partRepository.GetPartByID(ctx, partId)
 
 	if err != nil {

@@ -24,7 +24,7 @@ func (c *GetPartByIDController) Handle(ctx *gin.Context) {
 		return
 	}
 
-	part, err := c.useCase.Execute(id)
+	part, err := c.useCase.Execute(ctx.Request.Context(), id)
 
 	if err != nil {
 		log.Println("Erro ao buscar peça:", err)

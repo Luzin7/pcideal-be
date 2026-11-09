@@ -21,8 +21,7 @@ func NewGetPartByIDUseCase(partRepository repository.PartRepository, updatePartU
 	}
 }
 
-func (uc *GetPartByIDUseCase) Execute(id string) (*entity.Part, *errors.ErrService) {
-	ctx := context.Background()
+func (uc *GetPartByIDUseCase) Execute(ctx context.Context, id string) (*entity.Part, *errors.ErrService) {
 	part, err := uc.partRepository.GetPartByID(ctx, id)
 
 	if err != nil {
@@ -34,7 +33,7 @@ func (uc *GetPartByIDUseCase) Execute(id string) (*entity.Part, *errors.ErrServi
 	}
 
 	if util.PartNeedToUpdate(part) {
-		uc.updatePartUC.Execute(part.ID.Hex())
+		uc.updatePartUC.Execute(ctx, part.ID.Hex())
 	}
 
 	return part, nil

@@ -7,13 +7,15 @@ import (
 )
 
 type BuildAttempt struct {
-	ID        primitive.ObjectID `bson:"_id" json:"id"`
-	IP        string             `bson:"ip" json:"ip"`
-	Goal      string             `bson:"goal" json:"goal"`
-	Budget    int64              `bson:"budget" json:"budget"`
-	CPUPref   string             `bson:"cpu_pref,omitempty" json:"cpu_pref,omitempty"`
-	GPUPref   string             `bson:"gpu_pref,omitempty" json:"gpu_pref,omitempty"`
-	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
+	ID          primitive.ObjectID `bson:"_id" json:"id"`
+	IP          string             `bson:"ip" json:"ip"`
+	Goal        string             `bson:"goal" json:"goal"`
+	Budget      int64              `bson:"budget" json:"budget"`
+	CPUPref     string             `bson:"cpu_pref,omitempty" json:"cpu_pref,omitempty"`
+	GPUPref     string             `bson:"gpu_pref,omitempty" json:"gpu_pref,omitempty"`
+	WindowStart time.Time          `bson:"window_start" json:"window_start"`
+	Slot        int                `bson:"slot" json:"slot"`
+	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
 }
 
 func NewBuildAttempt(ip string, goal string, budget int64, cpuPref string, gpuPref string) *BuildAttempt {
@@ -24,6 +26,6 @@ func NewBuildAttempt(ip string, goal string, budget int64, cpuPref string, gpuPr
 		Budget:    budget,
 		CPUPref:   cpuPref,
 		GPUPref:   gpuPref,
-		CreatedAt: time.Now(),
+		CreatedAt: time.Now().UTC(),
 	}
 }
