@@ -134,6 +134,19 @@ db.parts.aggregate([
 
 Enquanto a consulta retornar documentos, remova ou corrija as duplicatas antes de confiar no índice.
 
+O comando `cmd/dedupe-parts` audita e corrige as duplicatas legadas. O modo padrão é dry-run e não escreve nada:
+
+```bash
+go run ./cmd/dedupe-parts                 # dry-run: grupos, exclusões, campos divergentes e store/url ausentes
+go run ./cmd/dedupe-parts --check         # dry-run: sai com código 1 quando existe grupo duplicado
+go run ./cmd/dedupe-parts --timeout=10m   # limite de execução (padrão: 5m)
+go run ./cmd/dedupe-parts --apply --confirm=DELETE-DUPLICATES
+```
+
+`--apply` exige `--confirm=DELETE-DUPLICATES` e recusa a execução quando há documentos com `store` ou `url` vazio/ausente. Em cada grupo, mantém o documento com maior `updated_at` (empate: maior `_id`) e remove somente os `_id` extras, com filtro também por `store` e `url`; depois cria ou valida o índice `parts_store_url_unique` e confere a retenção dos canônicos e a contagem de exclusões. Se a execução for interrompida, rode novamente: a operação é idempotente e conclui o restante.
+
+A importação deve ser idempotente e usar `mongoimport --upsert --upsertFields store,url`, para que o índice único seja respeitado.
+
 ## Testes
 
 ```bash
