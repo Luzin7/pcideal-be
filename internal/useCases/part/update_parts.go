@@ -2,7 +2,9 @@ package part
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/Luzin7/pcideal-be/internal/domain/repository"
@@ -22,6 +24,38 @@ func NewUpdatePartsUseCase(partRepository repository.PartRepository, scraperClie
 	}
 }
 
+const (
+	maxLoggedPartIDs     = 20
+	maxLoggedErrorLength = 512
+)
+
+func partIDs(urls []dto.ProductLinkToUpdate) []string {
+	ids := make([]string, len(urls))
+	for i, url := range urls {
+		ids[i] = url.ID
+	}
+
+	return ids
+}
+
+func loggedPartIDs(urls []dto.ProductLinkToUpdate) string {
+	ids := partIDs(urls)
+	if len(ids) <= maxLoggedPartIDs {
+		return strings.Join(ids, ", ")
+	}
+
+	return fmt.Sprintf("%s, +%d more", strings.Join(ids[:maxLoggedPartIDs], ", "), len(ids)-maxLoggedPartIDs)
+}
+
+func loggedError(err error) string {
+	message := []rune(err.Error())
+	if len(message) <= maxLoggedErrorLength {
+		return string(message)
+	}
+
+	return fmt.Sprintf("%s [truncated]", string(message[:maxLoggedErrorLength]))
+}
+
 func (uc *UpdatePartsUseCase) Execute(ctx context.Context, urls []dto.ProductLinkToUpdate, store string) *errors.ErrService {
 	if len(urls) <= 0 {
 		return errors.New("urls cannot be empty", 400)
@@ -30,8 +64,8 @@ func (uc *UpdatePartsUseCase) Execute(ctx context.Context, urls []dto.ProductLin
 	updatedParts, err := uc.scraperClient.UpdateProducts(ctx, urls, store)
 
 	if err != nil {
-		log.Printf("Error scraping product for part %v", err)
-		return errors.ErrScrapingFailed("urls")
+		log.Printf("Error scraping products for store %s (parts: %d, ids: %s): %s", store, len(urls), loggedPartIDs(urls), loggedError(err))
+		return errors.ErrScrapingFailedBatch(store, len(urls))
 	}
 
 	for _, part := range updatedParts {

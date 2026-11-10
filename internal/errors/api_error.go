@@ -41,6 +41,13 @@ func ErrScrapingFailed(partId string) *ErrService {
 	)
 }
 
+func ErrScrapingFailedBatch(store string, count int) *ErrService {
+	return New(
+		fmt.Sprintf("Failed to scrape products for store %s (%d parts)", store, count),
+		502,
+	)
+}
+
 func ErrScrapingTimeout(partId string) *ErrService {
 	return New(
 		fmt.Sprintf("Scraping timeout for part %s", partId),
