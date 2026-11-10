@@ -1,6 +1,8 @@
 package database
 
 import (
+	"errors"
+	"strings"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -93,6 +95,60 @@ func TestHasUniqueStoreURLIndex(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := hasUniqueStoreURLIndex(tt.indexes); got != tt.want {
 				t.Fatalf("expected %v, got %v", tt.want, got)
+			}
+		})
+	}
+}
+
+func TestRequireUniqueStoreURLIndex(t *testing.T) {
+	checkErr := errors.New("list parts indexes: boom")
+
+	tests := []struct {
+		name        string
+		ready       bool
+		checkErr    error
+		wantErr     bool
+		wantMessage string
+	}{
+		{
+			name:  "ready",
+			ready: true,
+		},
+		{
+			name:        "not ready",
+			ready:       false,
+			wantErr:     true,
+			wantMessage: StoreURLDuplicateAuditCommand,
+		},
+		{
+			name:     "check failed",
+			checkErr: checkErr,
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := RequireUniqueStoreURLIndex(tt.ready, tt.checkErr)
+			if tt.wantErr != (err != nil) {
+				t.Fatalf("expected error %v, got %v", tt.wantErr, err)
+			}
+
+			if !tt.wantErr {
+				return
+			}
+
+			var target *UniqueIndexNotReadyError
+			if !errors.As(err, &target) {
+				t.Fatalf("expected *UniqueIndexNotReadyError, got %T", err)
+			}
+
+			if tt.checkErr != nil && !errors.Is(err, tt.checkErr) {
+				t.Fatalf("expected cause %v, got %v", tt.checkErr, err)
+			}
+
+			if tt.wantMessage != "" && !strings.Contains(err.Error(), tt.wantMessage) {
+				t.Fatalf("expected message to contain %q, got %q", tt.wantMessage, err.Error())
 			}
 		})
 	}

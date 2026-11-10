@@ -82,13 +82,8 @@ func main() {
 	indexCheckCtx, cancelIndexCheck := context.WithTimeout(context.Background(), indexTimeout)
 	uniqueIndexReady, indexCheckErr := database.UniqueStoreURLIndexReady(indexCheckCtx, db)
 	cancelIndexCheck()
-	if indexCheckErr != nil {
-		log.Printf("[database] ERROR: could not verify unique index %s: %v", database.StoreURLIndexName, indexCheckErr)
-	} else if !uniqueIndexReady {
-		log.Printf(
-			"[database] ERROR: unique index %s is missing; imports are NOT idempotent. Run the duplicate audit: %s",
-			database.StoreURLIndexName, database.StoreURLDuplicateAuditCommand,
-		)
+	if err := database.RequireUniqueStoreURLIndex(uniqueIndexReady, indexCheckErr); err != nil {
+		log.Fatalf("[database] ERROR: %v", err)
 	}
 
 	partRepository := repositories.NewPartRepository(db)

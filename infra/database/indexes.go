@@ -28,11 +28,31 @@ func EnsureIndexes(ctx context.Context, db *mongo.Database) error {
 		return fmt.Errorf("ensure build_attempts indexes: %w", err)
 	}
 
-	if _, err := db.Collection("parts").Indexes().CreateOne(ctx, storeURLUniqueIndex()); err != nil {
+	if err := EnsureStoreURLUniqueIndex(ctx, db); err != nil {
 		log.Printf(
-			"[database] non-fatal: failed to create unique index %s: %v; run duplicate audit: %s",
+			"[database] failed to create unique index %s: %v; startup continues only if the index is already present. Run the duplicate audit: %s",
 			StoreURLIndexName, err, StoreURLDuplicateAuditCommand,
 		)
+	}
+
+	return nil
+}
+
+func EnsureStoreURLUniqueIndex(ctx context.Context, db *mongo.Database) error {
+	if _, err := db.Collection("parts").Indexes().CreateOne(ctx, storeURLUniqueIndex()); err != nil {
+		return fmt.Errorf("create unique index %s: %w", StoreURLIndexName, err)
+	}
+
+	return nil
+}
+
+func RequireUniqueStoreURLIndex(ready bool, checkErr error) error {
+	if checkErr != nil {
+		return &UniqueIndexNotReadyError{CheckErr: checkErr}
+	}
+
+	if !ready {
+		return &UniqueIndexNotReadyError{}
 	}
 
 	return nil
